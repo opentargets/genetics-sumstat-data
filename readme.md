@@ -1,9 +1,70 @@
 Process summary stats for Open Target Genetics
 ==============================================
 
-Proposed summary stat folder structure: https://docs.google.com/document/d/18splDAKSlboKCQdAcLogexE_Zd3odv6qlTSPoBUI4aQ/edit
+### Proposed summary stat folder structure
+
+https://docs.google.com/document/d/18splDAKSlboKCQdAcLogexE_Zd3odv6qlTSPoBUI4aQ/edit
+
+```
+gwas
+  genome_wide
+    study_id
+      trait_code
+        {chromosome}-{study_id}-{trait_id}.tsv.gz
+  targeted
+    immunochip
+      study_id
+        trait_code
+          {chromosome}-{study_id}-{trait_id}.tsv.gz
+    metabochip
+      ...
+    ...
+
+molecular_qtl
+  eqtl
+    study_id
+      tissue/cell_id # E.g. uberon or cell ontology ID
+        biomarker_id # E.g. ensembl ID
+          {chromosome}-{study_id}-{tissue_id}-{biomarker_id}.tsv.gz
+        ...
+  pqtl
+    study_id
+      tissue/cell_id # E.g. uberon or cell ontology ID
+        biomarker_id # E.g. uniprot ID
+          {chromosome}-{study_id}-{tissue_id}-{biomarker_id}.tsv.gz
+        ...
+  metabolites
+    study_id
+      tissue/cell_id # E.g. uberon or cell ontology ID
+        biomarker_id # E.g. chebi ID
+          {chromosome}-{study_id}-{tissue_id}-{biomarker_id}.tsv.gz
+        ...
+  cell_counts # E.g. Astle et al blood cell indicies
+    study_id
+      tissue/cell_id # E.g. uberon or cell ontology ID
+        biomarker_id  # E.g. uberon or cell ontology ID
+          {chromosome}-{study_id}-{tissue_id}-{biomarker_id}.tsv.gz
+        ...
+
+sequencing
+  exome
+    study_id
+      trait_code
+        variant_level
+          {chromosome}-{study_id}-{trait_id}.tsv.gz
+        gene_level
+          {chromosome}-{study_id}-{trait_id}.tsv.gz
+  wgs
+    study_id
+      trait_code
+        variant_level
+          {chromosome}-{study_id}-{trait_id}.tsv.gz
+        gene_level
+          {chromosome}-{study_id}-{trait_id}.tsv.gz
+```
 
 ### Requirements when adding new datasets
+- Alleles should be harmonised so that ref and alt alleles match the Ensembl VCF
 - Alt allele should always be the effect allele
 - For case-control studies where OR are not reported, betas should be converted to log_odds. If association test was run using a linear model (e.g. BOLT-LMM, Hail) then the correct formula to calculate log odds is:
   ```
@@ -26,7 +87,6 @@ Proposed summary stat folder structure: https://docs.google.com/document/d/18spl
 - NaN and null should be represented as empty string ""
 
 ### Columns
-
 ```
 * variant_id_b37 (str): 'chr_pos_ref_alt' for GRCh37
 * chrom (str): chromosome [not null]
