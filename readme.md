@@ -64,7 +64,7 @@ sequencing
 ```
 
 ### Requirements when adding new datasets
-- Alleles should be harmonised so that ref and alt alleles match the Ensembl VCF
+- Alleles should be harmonised so that ref and alt alleles match the Ensembl VCF: https://github.com/opentargets/sumstat_harmoniser
 - Alt allele should always be the effect allele
 - For case-control studies where OR are not reported, betas should be converted to log_odds. If association test was run using a linear model (e.g. BOLT-LMM, Hail) then the correct formula to calculate log odds is:
   ```
