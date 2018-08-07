@@ -103,5 +103,5 @@ sequencing
 * eaf (float): effect allele frequency [nullable]
 * maf (float): minor allele frequency [nullable]
 * info (float): imputation quality [nullable]
-* is_cc (bool): 'True' if case-control, 'False' if quantitative study [nullable]
+* is_cc (bool): 'True' if case-control, 'False' if quantitative study [not null]
 ```
