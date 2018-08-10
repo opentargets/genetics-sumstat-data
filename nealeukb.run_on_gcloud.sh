@@ -4,7 +4,7 @@
 set -euo pipefail
 
 # Inputs
-in_gcs=gs://uk_biobank_data/em21/neale_summary_statistics_20170915/cleaned_data/clean/*.nealeUKB_20170915.assoc.clean.tsv.gz
+in_gcs=gs://uk_biobank_data/em21/neale_summary_statistics_20170915/cleaned_data/clean
 local_input=input_nealeukb_data
 # Outputs
 out_gcs=gs://genetics-portal-sumstats/gwas/genome_wide
@@ -17,7 +17,7 @@ mkdir -p $local_input
 mkdir -p $local_output
 
 # Copy data to local
-gsutil -m -o GSUtil:parallel_composite_upload_threshold=150M cp $in_gcs $local_input
+gsutil -m rsync -r -x ".*DS_Store$" $in_gcs $local_input
 
 # Calc number of chroms. Speeds up computation.
 mkdir -p chrom_lists
@@ -31,7 +31,7 @@ done | parallel -j $ncores
 snakemake --cores $ncores --snakefile nealeukb.Snakefile
 
 # Copy output to gcs
-gsutil -m -o GSUtil:parallel_composite_upload_threshold=150M cp -r $local_output $out_gcs
+gsutil -m -o GSUtil:parallel_composite_upload_threshold=150M rsync -r -x ".*DS_Store$" $local_output $out_gcs
 
 # Shutdown instance
 gcloud compute instances stop em-sumstat-processing-big --zone="europe-west1-d"
