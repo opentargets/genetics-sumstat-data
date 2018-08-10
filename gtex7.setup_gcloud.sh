@@ -14,6 +14,6 @@ sleep 1
 . ~/.profile
 
 # install snakemake
-conda install --yes -c bioconda -c conda-forge snakemake pypy3.5 pandas
+conda install --yes -c bioconda -c conda-forge snakemake pandas
 
 echo COMPLETE
