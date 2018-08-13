@@ -19,8 +19,7 @@ ss_dict = dict(zip(ss_df.loc[:, 0], ss_df.loc[:, 1]))
 tc_df = pd.read_csv('configs/gtex7_tissue_codes.tsv', sep='\t', header=0)
 tc_dict = dict(zip(tc_df.prefix, tc_df.uberon_code))
 
-# chroms = [str(x) for x in range(1, 23)] + ['X']
-chroms = ['1']
+chroms = [str(x) for x in range(1, 23)] + ['X']
 
 rule all:
     input:
@@ -37,8 +36,8 @@ rule format_sumstat:
         tissue_code=lambda wildcards: tc_dict[wildcards.tissue]
     output:
         'logs/gtex7.{chrom}.{tissue}.done.txt'
-    # resources:
-    #     mem_gb=40
+    resources:
+        mem_gb=8
     shell:
         'python scripts/gtex7.format_sumstats.py '
         '--inf {input} '
