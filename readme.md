@@ -84,6 +84,7 @@ sequencing
   * filter all rows to remove where MAF < maf_threshold
   ```
 - If pval == 0, set to minimum float64
+- TODO add INFO score filter ?
 - NaN and null should be represented as empty string ""
 
 ### Columns
