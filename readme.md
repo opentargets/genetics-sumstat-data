@@ -84,8 +84,9 @@ sequencing
   * filter all rows to remove where MAF < maf_threshold
   ```
 - If pval == 0, set to minimum float64
-- TODO add INFO score filter ?
 - NaN and null should be represented as empty string ""
+- TODO add INFO score filter ?
+- TODO If MAF is not reported by study, should it be estimated from a reference?
 
 ### Columns
 ```
