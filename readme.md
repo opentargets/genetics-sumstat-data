@@ -85,6 +85,7 @@ sequencing
   ```
 - If pval == 0, set to minimum float64
 - NaN and null should be represented as empty string ""
+  - TODO future versions should use 'NA' instead of empty field
 - TODO add INFO score filter ?
 - TODO If MAF is not reported by study, should it be estimated from a reference?
 
