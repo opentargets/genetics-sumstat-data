@@ -28,6 +28,7 @@ Workflows for processing summary statistics file for Open Targets Genetics.
   - TODO future versions should use 'NA' instead of empty field
 - TODO add INFO score filter ?
 - TODO If MAF is not reported by study, should it be estimated from a reference?
+- TODO maf should be changed to eaf
 
 ### Columns
 ```
