@@ -24,15 +24,15 @@ def main():
         print('Processing ({0}) {1}...'.format(c, gcs_dest))
 
         # Skip if output exists
-        if gcs_exists(gcs_dest):
-            print('Skipping')
-            continue
+        # if gcs_exists(gcs_dest):
+        #     print('Skipping')
+        #     continue
 
         # Construct command
         cmd = [
             'wget -qO- ',
             src,
-            '| gsutil cp - ',
+            '| gsutil cp -n - ',
             gcs_dest
         ]
 
