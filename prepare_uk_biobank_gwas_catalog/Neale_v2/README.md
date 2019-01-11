@@ -30,3 +30,7 @@ Needs doing:
   - info
   - Others?
 - Missing set to NA
+
+Requirements:
+  - Spark >= 1.3.0 with hadoop=2.7 (hadoop 3 does not include copyMerge)
+  - Pyspark

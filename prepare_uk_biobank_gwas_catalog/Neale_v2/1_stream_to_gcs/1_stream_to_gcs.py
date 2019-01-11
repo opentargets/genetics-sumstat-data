@@ -20,6 +20,7 @@ def main():
 
         c += 1
 
+        dest = dest.replace('.bgz', '.gz')
         gcs_dest = '{gcs}/{dest}'.format(gcs=out_gcs, dest=dest)
         print('Processing ({0}) {1}...'.format(c, gcs_dest))
 

@@ -12,7 +12,7 @@ Workflows for processing summary statistics file for Open Targets Genetics.
   * log_ORse  = se / (μ * (1 - μ))
   * where μ   = case fraction = (n_cases / (n_cases + n_controls))
   * OR        = exp(log_OR)
-  * OR 95% CI = exp(log_OR) ± 1.96 * exp(log_ORse)
+  * OR 95% CI = exp(log_OR ± 1.96 * log_ORse)
   * Citation: https://data.broadinstitute.org/alkesgroup/BOLT-LMM/#x1-5200010.2
   ```
 - Chromosome must be one of `[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 'X', 'Y', 'MT']`
