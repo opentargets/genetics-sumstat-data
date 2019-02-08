@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # Ed Mountjoy
-# 
+#
 # Requires scipy and pandas
 
 '''
@@ -23,20 +23,8 @@ import scipy.stats as st
 
 def main():
 
-
     # Args
     min_mac = 5
-
-    # File args GCS
-
-    # File args local
-    in_study = 'Naranbhai_2015'
-    # in_study = 'HipSci'
-    in_nominal = 'example_data/{0}/*/*.nominal.sorted.txt.gz'.format(in_study)
-    in_varinfo = 'example_data/{0}/*/*.variant_information.txt.gz'.format(in_study)
-    in_gene_meta = 'example_data/*_gene_metadata.txt'
-    in_biofeatures_map = '../../../genetics-backend/biofeatureLUT/biofeature_lut_190208.json'
-    out_parquet = 'output/{0}.parquet'.format(in_study.upper())
 
     # Make spark session
     global spark
@@ -44,76 +32,86 @@ def main():
     print('Spark version: ', spark.version)
     start_time = time()
 
-    # Load data and variant table
-    data = load_nominal_data(in_nominal)
-    varinfo = load_variant_info(in_varinfo)
-    meta = load_gene_metadata(in_gene_meta)
+    for in_study in ['Alasoo_2018', 'BLUEPRINT', 'CEDAR', 'Fairfax_2012',
+                     'Fairfax_2014', 'GENCORD', 'GEUVADIS', 'HipSci',
+                     'Naranbhai_2015', 'Nedelec_2016', 'Quach_2016',
+                     'Schwartzentruber_2018', 'TwinsUK', 'van_de_Bunt_2015']:
 
-    # print(data.rdd.getNumPartitions())
-    # print(varinfo.rdd.getNumPartitions())
-    # print(meta.rdd.getNumPartitions())
+        # File args GCS
+        in_nominal = 'gs://genetics-portal-raw/eqtl_db_v1/raw/{0}/*/*.nominal.sorted.txt.gz'.format(in_study)
+        in_varinfo = 'gs://genetics-portal-raw/eqtl_db_v1/raw/{0}/*/*.variant_information.txt.gz'.format(in_study)
+        in_gene_meta = 'gs://genetics-portal-raw/eqtl_db_v1/raw/*_gene_metadata.txt'
+        in_biofeatures_map = 'gs://genetics-portal-data/lut/biofeature_lut_190208.json'
+        out_parquet = 'gs://genetics-portal-sumstats2/molecular_qtl/{0}.parquet'.format(in_study.upper())
 
-    # Filter low quality variants
-    varinfo = varinfo.filter(col('MAC') >= min_mac)
+        # # File args local
+        # in_nominal = 'example_data/{0}/*/*.nominal.sorted.txt.gz'.format(in_study)
+        # in_varinfo = 'example_data/{0}/*/*.variant_information.txt.gz'.format(in_study)
+        # in_gene_meta = 'example_data/*_gene_metadata.txt'
+        # in_biofeatures_map = '../../../genetics-backend/biofeatureLUT/biofeature_lut_190208.json'
+        # out_parquet = 'output/{0}.parquet'.format(in_study.upper())
 
-    # Merge
-    merged = meta.join(data, on='phenotype_id', how='inner')
-    merged = merged.join(varinfo, on=['bio_feature_str', 'chrom', 'pos', 'ref', 'alt'])
+        # Load data and variant table
+        data = load_nominal_data(in_nominal)
+        varinfo = load_variant_info(in_varinfo)
+        meta = load_gene_metadata(in_gene_meta)
 
-    # Map bio_feature_str to bio_feature
-    bf_map_dict = spark.sparkContext.broadcast(
-        load_biofeatures_map(in_biofeatures_map) )
-    bf_mapper = udf(lambda key: bf_map_dict.value[key])
-    merged = (
-        merged.withColumn('bio_feature', bf_mapper(col('bio_feature_str')))
-              .drop('bio_feature_str')
-    )
+        # Filter low quality variants
+        varinfo = varinfo.filter(col('MAC') >= min_mac)
 
-    # Add study id
-    merged = merged.withColumn('study_id', lit(in_study.upper()))
+        # Merge
+        merged = meta.join(data, on='phenotype_id', how='inner')
+        merged = merged.join(varinfo, on=['bio_feature_str', 'chrom', 'pos', 'ref', 'alt'])
 
-    # Re-order columns
-    col_order = [
-        'study_id',
-        'bio_feature',
-        'phenotype_id',
-        'quant_id',
-        'group_id',
-        'gene_id',
-        'chrom',
-        'pos',
-        'ref',
-        'alt',
-        'tss_dist',
-        'beta',
-        'se',
-        'pval',
-        'N',
-        'EAF',
-        'MAC',
-        'num_tests',
-        'is_sentinal',
-        'info'
-    ]
-    merged = merged.select(col_order)
+        # Map bio_feature_str to bio_feature
+        bf_map_dict = spark.sparkContext.broadcast(
+            load_biofeatures_map(in_biofeatures_map) )
+        bf_mapper = udf(lambda key: bf_map_dict.value[key])
+        merged = (
+            merged.withColumn('bio_feature', bf_mapper(col('bio_feature_str')))
+                  .drop('bio_feature_str')
+        )
 
-    # Repartition
-    merged = merged.repartitionByRange('chrom', 'pos', 'ref', 'alt')
+        # Add study id
+        merged = merged.withColumn('study_id', lit(in_study.upper()))
 
-    # Write output
-    (
-        merged.write.parquet(
-              out_parquet,
-              mode='overwrite',
-              compression='snappy',
-              partitionBy='bio_feature'
-      )
-    )
+        # Re-order columns
+        col_order = [
+            'study_id',
+            'bio_feature',
+            'phenotype_id',
+            'quant_id',
+            'group_id',
+            'gene_id',
+            'chrom',
+            'pos',
+            'ref',
+            'alt',
+            'tss_dist',
+            'beta',
+            'se',
+            'pval',
+            'N',
+            'EAF',
+            'MAC',
+            'num_tests',
+            'is_sentinal',
+            'info'
+        ]
+        merged = merged.select(col_order)
 
-    # merged = merged.cache()
-    # merged.printSchema()
-    # merged.show(3)
-    # print(merged.count())
+        # Repartition
+        merged = merged.repartitionByRange('chrom', 'pos', 'ref', 'alt')
+
+        # Write output
+        (
+            merged.write.parquet(
+                  out_parquet,
+                  mode='overwrite',
+                  compression='snappy',
+                  partitionBy='bio_feature'
+          )
+        )
 
     print('Completed in {:.1f} secs'.format(time() - start_time))
 
