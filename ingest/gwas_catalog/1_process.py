@@ -45,6 +45,30 @@ def main():
     data = load_sumstats(in_sumstat)
 
     #
+    # Fill in required missing values -----------------------------------------
+    #
+
+    # Replace beta/se with logOR/logORse if oddsr and oddsr_lower not null
+    perc_97th = 1.95996398454005423552
+    to_do = (df.oddsr.isNotNull() & df.oddsr_lower.isNotNull())
+    df = (
+        df.withColumn('beta', when(to_do, log(df.oddsr)).otherwise(df.beta))
+          .withColumn('se', when(to_do, (log(df.oddsr) - log(df.oddsr_lower))/perc_97th ).otherwise(df.se))
+          .drop('oddsr', 'oddsr_lower')
+    )
+
+    # Impute standard error if missing
+    to_do = (df.beta.isNotNull() & df.pval.isNotNull() & df.se.isNull())
+    df = (
+        df.withColumn('z_abs', abs(ppf_udf(col('pval'))))
+          .withColumn('se', when(to_do, abs(col('beta')) / col('z_abs')).otherwise(col('se')))
+          .drop('z_abs')
+    )
+
+    # Drop NAs, eaf null is ok as this will be inferred from a reference
+    df = df.dropna(subset=['chrom', 'pos', 'ref', 'alt', 'pval', 'beta', 'se'])
+
+    #
     # Fill in effect allele frequency using gnomad NFE frequency ---------------
     #
 
@@ -126,26 +150,6 @@ def load_sumstats(inf):
     for column in column_d.keys():
         df = ( df.withColumn(column, col(column).cast(column_d[column][1]))
                  .withColumnRenamed(column, column_d[column][0]) )
-
-    # Replace beta/se with logOR/logORse if oddsr and oddsr_lower not null
-    perc_97th = 1.95996398454005423552
-    to_do = (df.oddsr.isNotNull() & df.oddsr_lower.isNotNull())
-    df = (
-        df.withColumn('beta', when(to_do, log(df.oddsr)).otherwise(df.beta))
-          .withColumn('se', when(to_do, (log(df.oddsr) - log(df.oddsr_lower))/perc_97th ).otherwise(df.se))
-          .drop('oddsr', 'oddsr_lower')
-    )
-
-    # Impute standard error if missing
-    to_do = (df.beta.isNotNull() & df.pval.isNotNull() & df.se.isNull())
-    df = (
-        df.withColumn('z_abs', abs(ppf_udf(col('pval'))))
-          .withColumn('se', when(to_do, abs(col('beta')) / col('z_abs')).otherwise(col('se')))
-          .drop('z_abs')
-    )
-
-    # Drop NAs, eaf null is ok as this will be inferred from a reference
-    df = df.dropna(subset=['chrom', 'pos', 'ref', 'alt', 'pval', 'beta', 'se'])
 
     # Repartition
     df = df.repartitionByRange('chrom', 'pos')
