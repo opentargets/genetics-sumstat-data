@@ -208,7 +208,7 @@ def load_nominal_data(pattern):
     # Calculate standard errors
     df = (
         df.withColumn('z_abs', abs(ppf_udf(col('pval'))))
-          .withColumn('se', col('beta') / col('z_abs'))
+          .withColumn('se', abs(col('beta')) / col('z_abs'))
           .drop('z_abs')
     )
 

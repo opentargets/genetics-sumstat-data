@@ -30,7 +30,52 @@ Workflows for processing summary statistics file for Open Targets Genetics.
 - TODO If MAF is not reported by study, should it be estimated from a reference?
 - TODO maf should be changed to eaf
 
-### Columns
+
+### Columns new
+```
+message spark_schema {
+  required binary study_id (UTF8);
+  optional binary phenotype_id (UTF8);
+  optional binary biofeature (UTF8); # to include
+  optional binary quant_id (UTF8); # remove
+  optional binary group_id (UTF8); # remove
+  optional binary gene_id (UTF8);
+  optional binary chrom (UTF8);
+  optional int32 pos;
+  optional binary ref (UTF8);
+  optional binary alt (UTF8);
+  optional int32 tss_dist; # remove
+  optional double beta;
+  optional double se;
+  optional double pval;
+  optional int32 N;
+  optional int32 N_cases; # to add
+  optional double EAF;
+  optional int32 MAC;
+  optional int32 num_tests; # molecular qtl only
+  optional boolean is_sentinal; # remove
+  optional double info;
+  optional boolean is_cc; # to add
+}
+
+* chrom (str): chromosome [not null]
+* pos_b37 (pos): position [not null]
+* ref_al (str): reference allele (non-effect allele) [not null]
+* alt_al (str): alt allele (effect allele) [not null]
+* beta (float): beta for quantitiative study, log_OR for case-control [not null]
+* se (float): standard error of beta for quantitiative study, se of log_OR for case-control [not null]
+* pval (float): p-value. If pval == 0, set to minimum float64 [not null]
+* n_samples_variant_level (int): total sample size (variant level) [nullable]
+* n_samples_study_level (int):   total sample size (study level) [not null if n_samples_variant_level is null]
+* n_cases_variant_level (int): number of cases (variant level) [nullable]
+* n_cases_study_level (int):   number of cases (study level) [not null if n_cases_variant_level is null]
+* eaf (float): effect allele frequency [nullable]
+* maf (float): minor allele frequency [nullable]
+* info (float): imputation quality [nullable]
+* is_cc (bool): 'True' if case-control, 'False' if quantitative study [not null]
+```
+
+### Columns old
 ```
 * variant_id_b37 (str): 'chr_pos_ref_alt' for GRCh37
 * chrom (str): chromosome [not null]
