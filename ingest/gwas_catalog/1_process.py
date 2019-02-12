@@ -50,23 +50,23 @@ def main():
 
     # Replace beta/se with logOR/logORse if oddsr and oddsr_lower not null
     perc_97th = 1.95996398454005423552
-    to_do = (df.oddsr.isNotNull() & df.oddsr_lower.isNotNull())
-    df = (
-        df.withColumn('beta', when(to_do, log(df.oddsr)).otherwise(df.beta))
-          .withColumn('se', when(to_do, (log(df.oddsr) - log(df.oddsr_lower))/perc_97th ).otherwise(df.se))
+    to_do = (data.oddsr.isNotNull() & data.oddsr_lower.isNotNull())
+    data = (
+        data.withColumn('beta', when(to_do, log(data.oddsr)).otherwise(data.beta))
+          .withColumn('se', when(to_do, (log(data.oddsr) - log(data.oddsr_lower))/perc_97th ).otherwise(data.se))
           .drop('oddsr', 'oddsr_lower')
     )
 
     # Impute standard error if missing
-    to_do = (df.beta.isNotNull() & df.pval.isNotNull() & df.se.isNull())
-    df = (
-        df.withColumn('z_abs', abs(ppf_udf(col('pval'))))
+    to_do = (data.beta.isNotNull() & data.pval.isNotNull() & data.se.isNull())
+    data = (
+        data.withColumn('z_abs', abs(ppf_udf(col('pval'))))
           .withColumn('se', when(to_do, abs(col('beta')) / col('z_abs')).otherwise(col('se')))
           .drop('z_abs')
     )
 
     # Drop NAs, eaf null is ok as this will be inferred from a reference
-    df = df.dropna(subset=['chrom', 'pos', 'ref', 'alt', 'pval', 'beta', 'se'])
+    data = data.dropna(subset=['chrom', 'pos', 'ref', 'alt', 'pval', 'beta', 'se'])
 
     #
     # Fill in effect allele frequency using gnomad NFE frequency ---------------
@@ -91,6 +91,8 @@ def main():
             data.withColumn('eaf', when(col('eaf').isNull(), col('gnomad_nfe')).otherwise(col('eaf')))
                 .drop('gnomad_nfe')
         )
+
+    data.show()
 
     #
     # Fill in effect allele frequency using gnomad NFE frequency ---------------
