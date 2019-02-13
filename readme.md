@@ -34,28 +34,26 @@ Workflows for processing summary statistics file for Open Targets Genetics.
 ### Columns new
 ```
 message spark_schema {
+  required binary type (UTF8);
   required binary study_id (UTF8);
   optional binary phenotype_id (UTF8);
-  optional binary biofeature (UTF8); # to include
-  optional binary quant_id (UTF8); # remove
-  optional binary group_id (UTF8); # remove
+  optional binary biofeature (UTF8);
   optional binary gene_id (UTF8);
   optional binary chrom (UTF8);
   optional int32 pos;
   optional binary ref (UTF8);
   optional binary alt (UTF8);
-  optional int32 tss_dist; # remove
   optional double beta;
   optional double se;
   optional double pval;
-  optional int32 N;
-  optional int32 N_cases; # to add
-  optional double EAF;
-  optional int32 MAC;
+  optional int32 n_total;
+  optional int32 n_cases;
+  optional double eaf;
+  optional double mac;
+  optional double mac_cases;
   optional int32 num_tests; # molecular qtl only
-  optional boolean is_sentinal; # remove
   optional double info;
-  optional boolean is_cc; # to add
+  optional boolean is_cc;
 }
 
 * chrom (str): chromosome [not null]
