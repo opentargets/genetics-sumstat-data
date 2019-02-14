@@ -9,7 +9,7 @@ Maps UK biobank variants to GRCh38 and adds RSIDs from Ensembl.
 ```
 # Start server
 gcloud beta dataproc clusters create \
-    em-cluster-variant-annotation \
+    em-ukb-sitelist-annotation \
     --image-version=1.2-deb9 \
     --metadata=MINICONDA_VERSION=4.4.10,JAR=gs://hail-common/builds/0.2/jars/hail-0.2-07b91f4bd378-Spark-2.2.0.jar,ZIP=gs://hail-common/builds/0.2/python/hail-0.2-07b91f4bd378.zip \
     --properties=spark:spark.driver.memory=41g,spark:spark.driver.maxResultSize=0,spark:spark.task.maxFailures=20,spark:spark.kryoserializer.buffer.max=1g,spark:spark.driver.extraJavaOptions=-Xss4M,spark:spark.executor.extraJavaOptions=-Xss4M,hdfs:dfs.replication=1 \
@@ -32,19 +32,19 @@ HASH=$(gsutil cat gs://hail-common/builds/0.2/latest-hash/cloudtools-3-spark-2.2
 
 # Submit to cluster
 gcloud dataproc jobs submit pyspark \
-  --cluster=em-cluster-variant-annotation \
+  --cluster=em-ukb-sitelist-annotation \
   --files=gs://hail-common/builds/0.2/jars/hail-0.2-$HASH-Spark-2.2.0.jar \
   --py-files=gs://hail-common/builds/0.2/python/hail-0.2-$HASH.zip \
   --properties="spark.driver.extraClassPath=./hail-0.2-$HASH-Spark-2.2.0.jar,spark.executor.extraClassPath=./hail-0.2-$HASH-Spark-2.2.0.jar" \
   2_annotate.py
 
 # To monitor
-gcloud compute ssh em-cluster-variant-annotation-m \
+gcloud compute ssh em-ukb-sitelist-annotation-m \
   --project=open-targets-genetics \
   --zone=europe-west1-d -- -D 1080 -N
 
 "EdApplications/Google Chrome.app/Contents/MacOS/Google Chrome" \
   --proxy-server="socks5://localhost:1080" \
-  --user-data-dir="/tmp/em-cluster-variant-annotation-m" http://em-cluster-variant-annotation-m:8088
+  --user-data-dir="/tmp/em-ukb-sitelist-annotation-m" http://em-ukb-sitelist-annotation-m:8088
 
 ```
