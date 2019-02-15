@@ -40,8 +40,6 @@ def main():
             'f3':'str'}
     )
 
-    # ht = ht.head(1000) # DEBUG
-
     # Rename columns
     ht = ht.rename({
         'f0': 'chrom_b37',
@@ -57,17 +55,6 @@ def main():
     ).key_by('locus', 'alleles')
 
     #
-    # Annotate with RSIDs ------------------------------------------------------
-    #
-
-    # Load ensembl
-    ensembl = load_ensembl_vcf(in_ensembl)
-    # ensembl = ensembl.head(50000) # DEBUG
-
-    # Annotate rsids
-    ht = ht.annotate(rsid=ensembl[ht.locus, ht.alleles].rsid)
-
-    #
     # Do liftover --------------------------------------------------------------
     #
 
@@ -81,38 +68,39 @@ def main():
         locus_GRCh38 = hl.liftover(ht.locus, 'GRCh38')
     )
 
+    # Convert to spark
+    df = (
+        ht.to_spark()
+          .withColumnRenamed('locus_GRCh38.contig', 'chrom_b38')
+          .withColumnRenamed('locus_GRCh38.position', 'pos_b38')
+          .drop('locus.contig', 'locus.position', 'alleles')
+    )
+
+    #
+    # Annotate with rsids ------------------------------------------------------
+    #
+
+    # Load ensembl
+    ensembl = load_ensembl_vcf(in_ensembl)
+
+    # Join
+    df = df.join(ensembl,
+                on=['chrom_b37', 'pos_b37', 'ref', 'alt'],
+                how='left')
     #
     # Write output -------------------------------------------------------------
     #
 
-    # Clean output
-    ht = (
-        ht.annotate(
-            chrom_b38=ht.locus_GRCh38.contig,
-            pos_b38=ht.locus_GRCh38.position)
-         .key_by()
-         .drop('locus', 'alleles', 'locus_GRCh38')
-         .select('chrom_b37',
-                 'pos_b37',
-                 'chrom_b38',
-                 'pos_b38',
-                 'ref',
-                 'alt',
-                 'rsid')
-    )
-
     # Write
     (
-        ht.to_spark(flatten=False)
+        df.select('chrom_b37', 'pos_b37', 'chrom_b38', 'pos_b38', 'ref', 'alt', 'rsid')
           .write.parquet(out_parquet, mode='overwrite')
     )
-
-    # ht.export('output.tsv.gz')
 
     return 0
 
 def load_ensembl_vcf(inf):
-    ''' Loads the Ensembl VCF into a hail table using Spark. Using import_vcf
+    ''' Loads the Ensembl VCF into using Spark. Using import_vcf
         causes errors.
     '''
     # Load in spark
@@ -143,14 +131,7 @@ def load_ensembl_vcf(inf):
           .distinct()
     )
 
-    # Make into a hail table
-    ht = hl.Table.from_spark(df)
-    ht = ht.annotate(
-        locus=hl.locus(ht.chrom_b37, ht.pos_b37, 'GRCh37'),
-        alleles=hl.array([ht.ref, ht.alt])
-    ).key_by('locus', 'alleles')
-
-    return ht
+    return df
 
 if __name__ == '__main__':
 
