@@ -15,13 +15,14 @@ def main():
     # Args (global)
     chain_file = 'gs://hail-common/references/grch37_to_grch38.over.chain.gz'
     inf = 'gs://genetics-portal-raw/uk_biobank_sumstats/variant_sitelist/ukbiobank_neale_saige_sitelist.tsv'
-    outf = 'gs://genetics-portal-raw/uk_biobank_sumstats/variant_sitelist/ukbiobank_neale_saige_sitelist.annotated.tsv.gz'
-    in_ensembl = 'gs://genetics-portal-raw/ensembl_grch37_r95/homo_sapiens-chr*.vcf.gz'
+    in_ensembl = 'gs://genetics-portal-raw/ensembl_grch37_r95/homo_sapiens-chr*.vcf.*.gz'
+    out_parquet = 'gs://genetics-portal-raw/uk_biobank_sumstats/variant_sitelist/ukbiobank_neale_saige_sitelist.annotated.parquet'
 
     # # Args (local)
-    # inf = 'ukbiobank_neale_saige_sitelist.tsv'
-    # in_ensembl = 'input_data/homo_sapiens-chr1.head.vcf.gz'
-    # outf = 'ukbiobank_neale_saige_sitelist.annotated.tsv.gz'
+    # chain_file = 'input_data/grch37_to_grch38.over.chain.gz'
+    # inf = 'ukbiobank_neale_saige_sitelist.head100k.tsv'
+    # in_ensembl = 'input_data/homo_sapiens-chr1.head.vcf'
+    # out_parquet = 'ukbiobank_neale_saige_sitelist.annotated.parquet'
 
     #
     # Load sitelist ------------------------------------------------------------
@@ -64,7 +65,7 @@ def main():
     # ensembl = ensembl.head(50000) # DEBUG
 
     # Annotate rsids
-    ht = ht.annotate(rsid=ensembl[ht.key].rsid)
+    ht = ht.annotate(rsid=ensembl[ht.locus, ht.alleles].rsid)
 
     #
     # Do liftover --------------------------------------------------------------
@@ -101,7 +102,12 @@ def main():
     )
 
     # Write
-    ht.export(outf)
+    (
+        ht.to_spark(flatten=False)
+          .write.parquet(out_parquet, mode='overwrite')
+    )
+
+    # ht.export('output.tsv.gz')
 
     return 0
 

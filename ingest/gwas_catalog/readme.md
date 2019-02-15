@@ -4,9 +4,11 @@ Ingest GWAS Catalog sumstats
 Spark workflow to read, clean and transfrom summary stats from the GWAS Catalog.
 
 Steps:
-  1. Alter manifest `configs/manifest.json`
-  2. Start dataproc cluster (see below)
-  3. Submit jobs `python run_all.py`
+  1. Create manifest `configs/manifest.json`
+  2. Remove old versions of the output (which will cause errors)
+  3. Start dataproc cluster (see below)
+  4. Submit jobs `python run_all.py`
+  5. Check logs for errors
 
 ```
 # Start server

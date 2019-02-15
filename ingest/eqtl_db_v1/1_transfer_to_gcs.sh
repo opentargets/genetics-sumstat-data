@@ -13,6 +13,14 @@ login <redacted>
 # Download to local
 mirror upload/eqtls
 
+# Remove permuted datasets
+rm -f eqtls/*/*/*.permuted.txt.gz
+
+# Split gzip (untested)
+for inf in eqtls/*/*/*.gz; do
+  echo pypy3 scripts/gzip_split.py --inf $inf --chunks 300 --header no_header --delete
+done | parallel -j 16
+
 # Copy to GCS
 gsutil -m rsync -rn eqtls/ gs://genetics-portal-raw/eqtl_db_v1/raw
 

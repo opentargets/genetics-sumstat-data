@@ -28,6 +28,9 @@ def main():
     # Parse args
     args = parse_args()
     args.min_mac = 10
+    args.min_rows = 10000
+
+    print()
 
     # # Test args
     # args = ArgPlacehorder()
@@ -73,30 +76,39 @@ def main():
     data = data.dropna(subset=['chrom', 'pos', 'ref', 'alt', 'pval', 'beta', 'se'])
 
     #
+    # Stop if there are no few rows --------------------------------------------
+    #
+
+    nrows = data.persist().count()
+    if nrows < args.min_rows:
+        print('Skpping as only {0} rows in {1}'.format(nrows, args.in_sumstats))
+        return 0
+
+    #
     # Fill in effect allele frequency using gnomad NFE frequency ---------------
     #
 
     # If there are any nulls in eaf, get allele freq from reference
-    if data.filter(col('eaf').isNull()).count() > 0:
-
-        # Load gnomad allele frequencies
-        afs = (
-            spark.read.parquet(args.in_af)
-                 .select('chrom_b38', 'pos_b38', 'ref', 'alt', 'af.gnomad_nfe')
-                 .withColumnRenamed('chrom_b38', 'chrom')
-                 .withColumnRenamed('pos_b38', 'pos')
-        )
-
-        # Join
-        data = data.join(afs, on=['chrom', 'pos', 'ref', 'alt'], how='left')
-
-        # Make fill in blanks on the EAF column using gnomad AF
-        data = (
-            data.withColumn('eaf', when(col('eaf').isNull(),
-                                        col('gnomad_nfe'))
-                                       .otherwise(col('eaf')))
-                .drop('gnomad_nfe')
-        )
+    # if data.filter(col('eaf').isNull()).count() > 0:
+    #
+    #     # Load gnomad allele frequencies
+    #     afs = (
+    #         spark.read.parquet(args.in_af)
+    #              .select('chrom_b38', 'pos_b38', 'ref', 'alt', 'af.gnomad_nfe')
+    #              .withColumnRenamed('chrom_b38', 'chrom')
+    #              .withColumnRenamed('pos_b38', 'pos')
+    #     )
+    #
+    #     # Join
+    #     data = data.join(afs, on=['chrom', 'pos', 'ref', 'alt'], how='left')
+    #
+    #     # Make fill in blanks on the EAF column using gnomad AF
+    #     data = (
+    #         data.withColumn('eaf', when(col('eaf').isNull(),
+    #                                     col('gnomad_nfe'))
+    #                                    .otherwise(col('eaf')))
+    #             .drop('gnomad_nfe')
+    #     )
 
     # Drop rows without effect allele frequency
     data = data.dropna(subset=['eaf'])
