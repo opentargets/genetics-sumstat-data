@@ -17,9 +17,9 @@ mirror upload/eqtls
 rm -f eqtls/*/*/*.permuted.txt.gz
 
 # Split gzip (untested)
-for inf in eqtls/*/*/*.gz; do
+for inf in raw/*/*/*.txt.gz; do
   echo pypy3 scripts/gzip_split.py --inf $inf --chunks 300 --header no_header --delete
-done | parallel -j 16
+done | parallel -j 8
 
 # Copy to GCS
 gsutil -m rsync -rn eqtls/ gs://genetics-portal-raw/eqtl_db_v1/raw

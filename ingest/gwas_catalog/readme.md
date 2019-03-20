@@ -10,6 +10,10 @@ Steps:
   4. Submit jobs `python run_all.py`
   5. Check logs for errors
 
+
+TODO:
+- Filter "low confidence" variants from Neale V2
+
 ```
 # Start server
 gcloud beta dataproc clusters create \
@@ -17,7 +21,7 @@ gcloud beta dataproc clusters create \
     --image-version=preview \
     --metadata 'CONDA_PACKAGES=scipy' \
     --initialization-actions gs://dataproc-initialization-actions/python/conda-install.sh \
-    --properties=spark:spark.debug.maxToStringFields=100 \
+    --properties=spark:spark.debug.maxToStringFields=100,spark:spark.executor.cores=31,spark:spark.executor.instances=1 \
     --master-machine-type=n1-standard-32 \
     --master-boot-disk-size=1TB \
     --num-master-local-ssds=1 \

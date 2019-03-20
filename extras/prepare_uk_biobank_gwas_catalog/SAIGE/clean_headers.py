@@ -22,7 +22,8 @@ def main():
         else:
             # Convert column 2 to int
             parts = line.split('\t')
-            parts[1] = str(int(parts[1].split('.')[0]))
+            # parts[1] = str(int(parts[1].split('.')[0]))
+            parts[1] = str(int(float(parts[1])))
 
             # Write
             sys.stdout.write('\t'.join(parts))

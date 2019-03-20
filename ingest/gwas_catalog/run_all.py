@@ -15,11 +15,15 @@ def main():
     # Args
     in_manifest ='configs/manifest.json'
     script = 'scripts/process.py'
-    run_remote = False
+    run_remote = True
     cluster_name = 'em-ingest-gwascatalog'
 
     # Run each job in the manifest
     for c, line in enumerate(open(in_manifest, 'r')):
+
+        if c == 0:
+            continue
+
         manifest = json.loads(line)
 
         # Build script args
@@ -56,8 +60,6 @@ def main():
         sp.call(' '.join(cmd), shell=True)
         print('Complete\n')
         time.sleep(0.5)
-
-        # break # DEBUG
 
     return 0
 

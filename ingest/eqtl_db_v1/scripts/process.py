@@ -14,7 +14,9 @@ export PYTHONPATH=$SPARK_HOME/python:$SPARK_HOME/python/lib/py4j-2.4.0-src.zip:$
 
 import sys
 import os
+import argparse
 from time import time
+import pandas
 import pyspark.sql
 from pyspark.sql.types import *
 from pyspark.sql import DataFrame
@@ -24,20 +26,26 @@ import scipy.stats as st
 def main():
 
     # Args
-    args = ArgsPlaceholder()
+    args = parse_args()
     args.min_mac = 5
+    print(args)
 
-    # File args
-    args.study_id = 'Naranbhai_2015'
-    args.in_nominal = '../example_data/Naranbhai_2015/*/*.nominal.sorted.txt.gz'
-    args.in_varinfo = '../example_data/Naranbhai_2015/*/*.variant_information.txt.gz'
-    args.in_gene_meta = '../example_data/*_gene_metadata.txt'
-    args.in_biofeatures_map = '../../../../genetics-backend/biofeatureLUT/biofeature_lut_190208.json'
-    args.out_parquet = '../output/Naranbhai_2015.parquet'
+    # # File args (test)
+    # args = ArgsPlaceholder()
+    # args.study_id = 'Naranbhai_2015'
+    # args.in_nominal = '../example_data/Naranbhai_2015/*/*.nominal.sorted.txt.gz'
+    # args.in_varinfo = '../example_data/Naranbhai_2015/*/*.variant_information.txt.gz'
+    # args.in_gene_meta = '../example_data/*_gene_metadata.txt'
+    # args.in_biofeatures_map = '../../../../genetics-backend/biofeatureLUT/biofeature_lut_190208.json'
+    # args.out_parquet = '../output/Naranbhai_2015.parquet'
 
     # Make spark session
     global spark
-    spark = pyspark.sql.SparkSession.builder.getOrCreate()
+    spark = (
+        pyspark.sql.SparkSession.builder
+        .config("parquet.enable.summary-metadata", "true")
+        .getOrCreate()
+    )
     print('Spark version: ', spark.version)
     start_time = time()
 
@@ -51,20 +59,20 @@ def main():
 
     # Merge
     merged = meta.join(data, on='phenotype_id', how='inner')
-    merged = merged.join(varinfo, on=['bio_feature_str', 'chrom', 'pos', 'ref', 'alt'])
+    merged = merged.join(varinfo, on=['biofeature_str', 'chrom', 'pos', 'ref', 'alt'])
 
-    # Map bio_feature_str to bio_feature
+    # Map biofeature_str to biofeature
     bf_map_dict = spark.sparkContext.broadcast(
         load_biofeatures_map(args.in_biofeatures_map) )
     bf_mapper = udf(lambda key: bf_map_dict.value[key])
     merged = (
-        merged.withColumn('bio_feature', bf_mapper(col('bio_feature_str')))
-              .drop('bio_feature_str')
+        merged.withColumn('bio_feature', bf_mapper(col('biofeature_str')))
+              .drop('biofeature_str')
     )
 
     # Additional columns to match gwas sumstat files
     merged = (
-        merged.withColumn('study_id', lit(args.study_id.upper()))
+        merged.withColumn('study_id', lit(args.study_id))
               .withColumn('type', lit('eqtl'))
               .withColumn('n_cases', lit(None).cast(IntegerType()))
               .withColumn('mac_cases', lit(None).cast(IntegerType()))
@@ -104,12 +112,14 @@ def main():
 
     # Write output
     (
-        merged.write.parquet(
-              args.out_parquet,
-              mode='overwrite',
-              compression='snappy',
-              partitionBy='bio_feature'
-      )
+        merged
+        .write
+        .partitionBy('bio_feature', 'chrom')
+        .parquet(
+            args.out_parquet,
+            mode='overwrite',
+            compression='snappy'
+        )
     )
 
     print('Completed in {:.1f} secs'.format(time() - start_time))
@@ -117,7 +127,7 @@ def main():
     return 0
 
 def load_biofeatures_map(inf):
-    ''' Loads file containing mapping for bio_feature_str to code
+    ''' Loads file containing mapping for biofeature_str to code
     Returns:
         python dictionary
     '''
@@ -173,8 +183,8 @@ def load_variant_info(pattern):
           .drop('varid', 'type', 'AC', 'AN', 'MAF')
     )
 
-    # Extract bio_feature
-    df = df.withColumn('bio_feature_str', get_biofeature_udf(input_file_name()))
+    # Extract biofeature
+    df = df.withColumn('biofeature_str', get_biofeature_udf(input_file_name()))
 
     # Repartition
     df = df.repartitionByRange('chrom', 'pos')
@@ -210,8 +220,8 @@ def load_nominal_data(pattern):
           .drop('z_abs')
     )
 
-    # Add bio_feature
-    df = df.withColumn('bio_feature_str', get_biofeature_udf(input_file_name()))
+    # Add biofeature
+    df = df.withColumn('biofeature_str', get_biofeature_udf(input_file_name()))
 
     # Clean fields
     df = (
@@ -219,7 +229,7 @@ def load_nominal_data(pattern):
                 'pheno_end', 'var_id')
           .withColumn('chrom', df.chrom.cast('string'))
           .withColumn('is_sentinal', df.is_sentinal.cast('boolean'))
-          .select(['phenotype_id', 'bio_feature_str', 'chrom', 'pos', 'ref',
+          .select(['phenotype_id', 'biofeature_str', 'chrom', 'pos', 'ref',
                    'alt', 'pval', 'beta', 'se', 'num_tests'])
     )
 
@@ -241,9 +251,20 @@ def ppf(pval):
     return float(st.norm.ppf(pval / 2))
 ppf_udf = udf(ppf, DoubleType())
 
-
 class ArgsPlaceholder():
     pass
+
+def parse_args():
+    """ Load command line args """
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--study_id', metavar="<file>", help=('Study ID to add as column'), type=str, required=True)
+    parser.add_argument('--in_nominal', metavar="<file>", help=('Input sum stats'), type=str, required=True)
+    parser.add_argument('--in_varinfo', metavar="<file>", help=("Input variant information"), type=str, required=True)
+    parser.add_argument('--in_gene_meta', metavar="<file>", help=("Input gene meta-data"), type=str, required=True)
+    parser.add_argument('--in_biofeatures_map', metavar="<file>", help=("Input biofeature to ontology map"), type=str, required=True)
+    parser.add_argument('--out_parquet', metavar="<file>", help=("Output parquet path"), type=str, required=True)
+    args = parser.parse_args()
+    return args
 
 if __name__ == '__main__':
 

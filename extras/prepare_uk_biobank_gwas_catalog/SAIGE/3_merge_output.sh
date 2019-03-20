@@ -5,10 +5,10 @@
 
 instance_name=em-merge-saige
 instance_zone=europe-west1-d
-cores=15
+cores=16
 
 in_dir="gs://genetics-portal-raw/uk_biobank_sumstats/saige_nov2017/output/saige_nov2017_sumstats_temp"
-out_dir="gs://genetics-portal-raw/uk_biobank_sumstats/saige_nov2017/output/saige_nov2017_sumstats"
+out_dir="gs://genetics-portal-raw/uk_biobank_sumstats/saige_nov2017/output/saige_nov2017_sumstats2"
 
 for in_gcs in $(gsutil ls $in_dir | grep 'phenotype='); do
 

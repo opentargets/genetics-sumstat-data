@@ -30,7 +30,7 @@ def main():
     args.min_mac = 10
     args.min_rows = 10000
 
-    print()
+    print(args)
 
     # # Test args
     # args = ArgPlacehorder()
@@ -44,7 +44,11 @@ def main():
 
     # Make spark session
     global spark
-    spark = pyspark.sql.SparkSession.builder.getOrCreate()
+    spark = (
+        pyspark.sql.SparkSession.builder
+        .config("parquet.enable.summary-metadata", "true")
+        .getOrCreate()
+    )
     print('Spark version: ', spark.version)
     start_time = time()
 
@@ -89,26 +93,26 @@ def main():
     #
 
     # If there are any nulls in eaf, get allele freq from reference
-    # if data.filter(col('eaf').isNull()).count() > 0:
-    #
-    #     # Load gnomad allele frequencies
-    #     afs = (
-    #         spark.read.parquet(args.in_af)
-    #              .select('chrom_b38', 'pos_b38', 'ref', 'alt', 'af.gnomad_nfe')
-    #              .withColumnRenamed('chrom_b38', 'chrom')
-    #              .withColumnRenamed('pos_b38', 'pos')
-    #     )
-    #
-    #     # Join
-    #     data = data.join(afs, on=['chrom', 'pos', 'ref', 'alt'], how='left')
-    #
-    #     # Make fill in blanks on the EAF column using gnomad AF
-    #     data = (
-    #         data.withColumn('eaf', when(col('eaf').isNull(),
-    #                                     col('gnomad_nfe'))
-    #                                    .otherwise(col('eaf')))
-    #             .drop('gnomad_nfe')
-    #     )
+    if data.filter(col('eaf').isNull()).count() > 0:
+
+        # Load gnomad allele frequencies
+        afs = (
+            spark.read.parquet(args.in_af)
+                 .select('chrom_b38', 'pos_b38', 'ref', 'alt', 'af.gnomad_nfe')
+                 .withColumnRenamed('chrom_b38', 'chrom')
+                 .withColumnRenamed('pos_b38', 'pos')
+        )
+
+        # Join
+        data = data.join(afs, on=['chrom', 'pos', 'ref', 'alt'], how='left')
+
+        # Make fill in blanks on the EAF column using gnomad AF
+        data = (
+            data.withColumn('eaf', when(col('eaf').isNull(),
+                                        col('gnomad_nfe'))
+                                       .otherwise(col('eaf')))
+                .drop('gnomad_nfe')
+        )
 
     # Drop rows without effect allele frequency
     data = data.dropna(subset=['eaf'])
@@ -147,7 +151,7 @@ def main():
         data.withColumn('type', lit('gwas'))
             .withColumn('study_id', lit(args.study_id).cast(StringType()))
             .withColumn('phenotype_id', lit(None).cast(StringType()))
-            .withColumn('biofeature', lit(None).cast(StringType()))
+            .withColumn('bio_feature', lit(None).cast(StringType()))
             .withColumn('gene_id', lit(None).cast(StringType()))
     )
 
@@ -162,7 +166,7 @@ def main():
         'type',
         'study_id',
         'phenotype_id',
-        'biofeature',
+        'bio_feature',
         'gene_id',
         'chrom',
         'pos',

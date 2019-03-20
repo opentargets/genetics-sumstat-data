@@ -3,10 +3,10 @@
 gcloud beta dataproc clusters create \
     em-cluster-eqtldb-ingest \
     --image-version=preview \
-    --properties=spark:spark.debug.maxToStringFields=100,spark:spark.executor.cores=7,spark:spark.executor.instances=1 \
-    --metadata 'CONDA_PACKAGES=pandas scipy' \
+    --metadata 'CONDA_PACKAGES=scipy pandas' \
     --initialization-actions gs://dataproc-initialization-actions/python/conda-install.sh \
-    --master-machine-type=n1-highmem-8 \
+    --properties=spark:spark.debug.maxToStringFields=100,spark:spark.executor.cores=31,spark:spark.executor.instances=1 \
+    --master-machine-type=n1-standard-32 \
     --master-boot-disk-size=1TB \
     --num-master-local-ssds=1 \
     --zone=europe-west1-d \
@@ -27,5 +27,6 @@ gcloud compute ssh em-cluster-eqtldb-ingest-m \
 "EdApplications/Google Chrome.app/Contents/MacOS/Google Chrome" \
   --proxy-server="socks5://localhost:1080" \
   --user-data-dir="/tmp/em-cluster-eqtldb-ingest-m" http://em-cluster-eqtldb-ingest-m:8088
-
 ```
+
+# Blueprint ran on 32 cores in 2 hr 12 min
