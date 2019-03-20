@@ -21,9 +21,9 @@ for in_gcs in $(gsutil ls $in_dir | grep 'phenotype='); do
   out_path=$out_dir/$pheno"_SAIGE_Nov2017_MACge20.tsv.gz"
 
   # Process
-  echo "gsutil cat \"$in_path\" | zcat | pypy clean_headers.py | gzip -c | gsutil cp -n - $out_path"
+  echo "gsutil cat \"$in_path\" | zcat | pypy3 clean_headers.py | gzip -c | gsutil cp -n - $out_path"
 
-done | parallel --progress -j $cores
+done | head -10 | parallel --progress -j $cores
 
 gcloud compute instances stop $instance_name --zone=$instance_zone
 
