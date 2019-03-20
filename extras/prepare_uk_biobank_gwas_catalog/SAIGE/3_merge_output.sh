@@ -5,7 +5,7 @@
 
 instance_name=em-merge-saige
 instance_zone=europe-west1-d
-cores=16
+cores=64
 
 in_dir="gs://genetics-portal-raw/uk_biobank_sumstats/saige_nov2017/output/saige_nov2017_sumstats_temp"
 out_dir="gs://genetics-portal-raw/uk_biobank_sumstats/saige_nov2017/output/saige_nov2017_sumstats2"
@@ -23,7 +23,7 @@ for in_gcs in $(gsutil ls $in_dir | grep 'phenotype='); do
   # Process
   echo "gsutil cat \"$in_path\" | zcat | pypy3 clean_headers.py | gzip -c | gsutil cp -n - $out_path"
 
-done | head -10 | parallel --progress -j $cores
+done | parallel --progress -j $cores
 
 gcloud compute instances stop $instance_name --zone=$instance_zone
 
