@@ -28,5 +28,3 @@ gcloud compute ssh em-cluster-gtex7-ingest-m \
   --proxy-server="socks5://localhost:1080" \
   --user-data-dir="/tmp/em-cluster-gtex7-ingest-m" http://em-cluster-gtex7-ingest-m:8088
 ```
-
-# Blueprint ran on 32 cores in 2 hr 12 min
