@@ -25,13 +25,11 @@ def main():
 
     # Args
     min_mac = 5
-    wgs_sample_size = 652
 
     # File args (local)
     in_gtex = 'example_data/gtex/*.allpairs.tsv'
     in_varindex = 'example_data/varindex_part-00000-2f1d26b6-a5b6-428f-9e62-affcd1ef6971-c000.snappy.parquet'
     in_biofeature_map = 'example_data/biofeature_lut_190208.json'
-    in_sample_sizes = 'example_data/gtex7_sample_sizes.tsv'
     out_stats = 'output/GTEX_v7.gnomad_merge_stats.tsv'
     out_parquet = 'output/GTEX_v7'
     
@@ -100,17 +98,6 @@ def main():
         .values.tolist()
     )
 
-    # Load sample sizes
-    size_map = dict(
-        spark.read.csv(
-            in_sample_sizes,
-            sep='\t',
-            header=False,
-            inferSchema=True
-        ).toPandas()
-        .values.tolist()
-    )
-
     #
     # Add sample size, tissue code, and variants to sumstat  ----=-------------
     #
@@ -134,12 +121,11 @@ def main():
 
     # Add biofeature code and sample size
     biofeature_mapper = udf(lambda key: biofeature_map[key])
-    size_mapper = udf(lambda key: size_map[key])
     sumstats = (
         sumstats
         .withColumn('bio_feature_str', get_biofeature_udf(input_file_name()))
         .withColumn('bio_feature', biofeature_mapper('bio_feature_str'))
-        .withColumn('n_total', size_mapper('bio_feature_str'))
+        .withColumn('n_total', ((col('ma_count') / col('maf')) / 2).cast('int') )
     )
 
     #
