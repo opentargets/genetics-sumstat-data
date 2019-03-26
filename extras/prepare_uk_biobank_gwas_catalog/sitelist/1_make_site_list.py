@@ -13,7 +13,7 @@ def main():
         'input_data/50_raw.neale2.gwas.imputed_v3.both_sexes.tsv.gz',
         'input_data/PheCode_401_SAIGE_Nov2017_MACge20.tsv.gz'
     ]
-    outf = 'ukbiobank_neale_saige_sitelist.tsv'
+    outf = 'output/ukbiobank_neale_saige_sitelist.tsv'
 
     # Load
     dfs = [

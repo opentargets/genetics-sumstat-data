@@ -40,7 +40,7 @@ def main():
     df = df.sort_values(['chrom_b37', 'pos_b37', 'ref', 'alt'])
 
     # Write
-    df.to_csv(outf, sep='\t', index=None, na_rep='NA')
+    df.to_csv(outf, sep='\t', index=None, na_rep='NA', compression='gzip')
 
     return 0
 

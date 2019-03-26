@@ -37,7 +37,7 @@ message spark_schema {
   required binary type (UTF8);
   required binary study_id (UTF8);
   optional binary phenotype_id (UTF8);
-  optional binary biofeature (UTF8);
+  optional binary bio_feature (UTF8);
   optional binary gene_id (UTF8);
   optional binary chrom (UTF8);
   optional int32 pos;

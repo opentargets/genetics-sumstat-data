@@ -14,9 +14,9 @@ def main():
 
     # Args (global)
     chain_file = 'gs://hail-common/references/grch37_to_grch38.over.chain.gz'
-    inf = 'gs://genetics-portal-raw/uk_biobank_sumstats/variant_sitelist/ukbiobank_neale_saige_sitelist.tsv'
+    inf = 'gs://genetics-portal-raw/uk_biobank_sumstats/variant_sitelist/ukbiobank_neale_saige_sitelist.190321.tsv'
     in_ensembl = 'gs://genetics-portal-raw/ensembl_grch37_r95/homo_sapiens-chr*.vcf.*.gz'
-    out_parquet = 'gs://genetics-portal-raw/uk_biobank_sumstats/variant_sitelist/ukbiobank_neale_saige_sitelist.annotated.parquet'
+    out_parquet = 'gs://genetics-portal-raw/uk_biobank_sumstats/variant_sitelist/ukbiobank_neale_saige_sitelist.190321.annotated.parquet'
 
     # # Args (local)
     # chain_file = 'input_data/grch37_to_grch38.over.chain.gz'
