@@ -244,11 +244,14 @@ def main():
         .withColumn('n_total', lit(sample_size))
         .withColumn('n_cases', lit(None).cast('int'))
         .withColumn('is_cc', lit(False))
-        .withColumn('mac', col('n_total') * 2 * col('eaf'))
+        .withColumn('maf', when(col('eaf') > 0.5, 1 - col('eaf')).otherwise(col('eaf')))
+        .withColumn('mac', col('n_total') * 2 * col('maf'))
         .withColumn('mac_cases', lit(None).cast('int'))
         .withColumn('info', lit(None).cast('double'))
         # Replace . with _ in phenotype ID
         .withColumn('phenotype_id', regexp_replace(col('phenotype_id'), '\.', '_'))
+        # Filter based on mac
+        .filter(col('mac') >= min_mac)
     )
 
     # Order and select columns
