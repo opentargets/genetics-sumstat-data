@@ -288,8 +288,6 @@ def main():
         .orderBy('chrom', 'pos', 'ref', 'alt')
     )
 
-    df.show()
-
     # Write output
     (
         df
