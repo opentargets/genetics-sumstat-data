@@ -49,7 +49,9 @@ def main():
 
     # Get minimum pvalue over window
     df = (
-        df.withColumn('window_min_p', 
+        df
+        
+        .withColumn('window_min_p', 
             min(col('pval')).over(window_spec)
         )
     )

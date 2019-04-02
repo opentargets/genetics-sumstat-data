@@ -16,13 +16,15 @@ def main():
     in_manifest = 'configs/ukb.manifest.head.json'
     script = 'scripts/process.py'
     run_remote = True
-    cluster_name = 'em-ingest-gwascatalog'
+    cluster_name = 'em-ingest-ukb'
+    # https://stackoverflow.com/questions/32820087/spark-multiple-spark-submit-in-parallel
+    starting_port = 4040
 
     # Run each job in the manifest
     for c, line in enumerate(open(in_manifest, 'r')):
 
-        if c == 0:
-            continue
+        # if c != 0:
+        #     continue
 
         manifest = json.loads(line)
 
@@ -44,6 +46,7 @@ def main():
             cmd = [
                 'gcloud dataproc jobs submit pyspark',
                 '--cluster={0}'.format(cluster_name),
+                '--properties spark.submit.deployMode=cluster',
                 '--async',
                 script,
                 '--'

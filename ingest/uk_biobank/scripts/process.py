@@ -152,7 +152,7 @@ def main():
     # Add study information columns
     data = (
         data.withColumn('type', lit('gwas'))
-            .withColumn('study_id', lit(args.study_id).cast(StringType()))
+            .withColumn('study_id', lit(args.study_id))
             .withColumn('phenotype_id', lit(None).cast(StringType()))
             .withColumn('bio_feature', lit(None).cast(StringType()))
             .withColumn('gene_id', lit(None).cast(StringType()))
@@ -211,27 +211,23 @@ def load_sumstats(inf):
     # Read
     df = ( spark.read.csv(inf,
                           sep='\t',
-                          inferSchema=True,
+                          inferSchema=False,
                           enforceSchema=True,
                           header=True,
                           nullValue='NA') )
-
-    # If "low_confidence_variant" exists, filter based on it
-    if 'low_confidence_variant' in df.columns:
-        df = df.filter(~col('low_confidence_variant'))
 
     # Specify new names and types
     column_d = OrderedDict([
         ('chromosome', ('chrom', StringType())),
         ('base_pair_location', ('pos', IntegerType())),
-        ('hm_other_allele', ('ref', StringType())),
-        ('hm_effect_allele', ('alt', StringType())),
-        ('p_value', ('pval', DoubleType())),
-        ('hm_beta', ('beta', DoubleType())),
+        ('other_allele', ('ref', StringType())),
+        ('effect_allele', ('alt', StringType())),
+        ('p-value', ('pval', DoubleType())),
+        ('beta', ('beta', DoubleType())),
         ('standard_error', ('se', DoubleType())),
-        ('hm_odds_ratio', ('oddsr', DoubleType())),
-        ('hm_ci_lower', ('oddsr_lower', DoubleType())),
-        ('hm_effect_allele_frequency', ('eaf', DoubleType())),
+        ('odds_ratio', ('oddsr', DoubleType())),
+        ('ci_lower', ('oddsr_lower', DoubleType())),
+        ('effect_allele_frequency', ('eaf', DoubleType())),
         ('info', ('info', DoubleType()))
     ])
 
@@ -247,6 +243,10 @@ def load_sumstats(inf):
     for column in column_d.keys():
         df = ( df.withColumn(column, col(column).cast(column_d[column][1]))
                  .withColumnRenamed(column, column_d[column][0]) )
+    
+    # If "low_confidence_variant" exists, filter based on it
+    if 'low_confidence_variant' in df.columns:
+        df = df.filter(~col('low_confidence_variant'))
 
     # Repartition
     df = df.repartitionByRange('chrom', 'pos')
