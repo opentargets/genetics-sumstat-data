@@ -10,11 +10,11 @@ Spark workflow to read, clean and transfrom summary stats from UK Biobank.
 # Get list of input files on GCS
 gsutil -m ls gs://genetics-portal-raw/uk_biobank_sumstats/harmonised_split_190318/\*.GRCh38.tsv.split000.gz > configs/ukb_inputs/gcs_input_paths.txt
 
-# Get list of exist output files
+# Get list of existing output files
 gsutil ls "gs://genetics-portal-sumstats-b38/unfiltered/gwas/*/_SUCCESS" > configs/ukb_inputs/gcs_completed_paths.txt
 
 # Create manifest file
-python `create_ukb_manifest.py`
+python create_ukb_manifest.py
 
 # Start cluster (see below)
 
