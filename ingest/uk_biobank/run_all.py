@@ -13,12 +13,10 @@ import time
 def main():
 
     # Args
-    in_manifest = 'configs/ukb.manifest.head.json'
+    in_manifest = 'configs/ukb.manifest.json'
     script = 'scripts/process.py'
     run_remote = True
     cluster_name = 'em-ingest-ukb'
-    # https://stackoverflow.com/questions/32820087/spark-multiple-spark-submit-in-parallel
-    starting_port = 4040
 
     # Run each job in the manifest
     for c, line in enumerate(open(in_manifest, 'r')):

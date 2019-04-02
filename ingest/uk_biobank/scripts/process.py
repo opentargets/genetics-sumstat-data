@@ -198,7 +198,8 @@ def main():
     (
         data.write.parquet(
             args.out_parquet,
-            compression='snappy')
+            compression='snappy',
+            mode='overwrite')
     )
 
     print('Completed in {:.1f} secs'.format(time() - start_time))
