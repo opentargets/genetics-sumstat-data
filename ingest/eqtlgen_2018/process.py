@@ -3,7 +3,6 @@
 #
 # Ed Mountjoy
 #
-# Requires scipy and pandas
 
 '''
 # Set SPARK_HOME and PYTHONPATH to use 2.4.0
@@ -29,14 +28,15 @@ def main():
     bio_feature = 'UBERON_0000178'
     data_type = 'eqtl'
 
-    # File args (local)
-    in_sumstats = 'example_data/cis-eQTLs_full_20180905.head.txt'
-    in_varindex = 'example_data/variant-annotation.sitelist.tsv'
-    in_freqs = 'example_data/2018-07-18_SNP_AF_for_AlleleB_combined_allele_counts_and_MAF_pos_added.txt'
-    out_parquet = 'output/eQTLGen'
+    # # File args (local)
+    # in_sumstats = 'example_data/cis-eQTLs_full_20180905.head.txt'
+    # in_varindex = 'example_data/variant-annotation.parquet'
+    # out_parquet = 'output/eQTLGen'
     
     # File args (server)
-    # TODO
+    in_sumstats = 'gs://genetics-portal-raw/eqtlgen_20180905/cis-eQTLs_full_20180905.txt'
+    in_varindex = 'gs://genetics-portal-data/variant-annotation/190129/variant-annotation.parquet'
+    out_parquet = 'gs://genetics-portal-sumstats-b38/unfiltered/molecular_trait/eQTLGen.parquet'
 
     # Make spark session
     global spark
@@ -80,83 +80,20 @@ def main():
         .drop('rsid', 'gene_name', 'gene_chrom', 'gene_pos', 'n_cohorts')
     )
 
-    # print(sumstats.select("pval").rdd.histogram(10))
-    # sumstats.show()
-    # sys.exit()
-
-    # Load freqs
-    import_schema = (
-        StructType()
-        .add('rsid', StringType())
-        .add('chrom', StringType())
-        .add('pos', IntegerType())
-        .add('effect_allele', StringType())
-        .add('other_allele', StringType())
-        .add('a_count', IntegerType())
-        .add('ab_count', IntegerType())
-        .add('b_count', IntegerType())
-        .add('b_freq', DoubleType())
-        )
-    freqs = (
-        spark.read.csv(
-            path=in_freqs,
-            sep='\t',
-            schema=import_schema,
-            enforceSchema=True,
-            header=True,
-            comment='#')
-        .withColumn('eaf', 1 - col('b_freq'))
-        .drop('rsid', 'a_count', 'ab_count', 'b_count', 'b_freq')
-    )
-
     # Load varindex
-    print('WARNING: using test variant index')
-    sys.exit('EXITING to make sure I dont forget to change this in production')
-    import_schema = (
-        StructType()
-        .add('locus', StringType())
-        .add('alleles', StringType())
-        .add('chrom', StringType())
-        .add('pos', IntegerType())
-        .add('chrom_b38', StringType())
-        .add('pos_b38', IntegerType())
-        .add('ref', StringType())
-        .add('alt', StringType())
-        .add('rsid', StringType())
-    )
     varindex = (
-        spark.read.csv(
-            path=in_varindex,
-            sep='\t',
-            schema=import_schema,
-            enforceSchema=True,
-            header=True,
-            comment='#')
-        .drop('locus', 'alleles', 'rsid')
-    )
-    # # Load varindex
-    # varindex = (
-    #     spark.read.parquet(in_varindex)
-    #     .select(
-    #         'chrom_b37',
-    #         'pos_b37',
-    #         'chrom_b38',
-    #         'pos_b38',
-    #         'ref',
-    #         'alt',
-    #         'af.gnomad_nfe'
-    #     )
-    #     .withColumnRenamed('chrom_b37', 'chrom')
-    #     .withColumnRenamed('pos_b37', 'pos')
-    # )
-
-    #
-    # Merge allele freqs ------------------------------------------------------
-    #
-
-    sumstats = sumstats.join(
-        freqs,
-        on=['chrom', 'pos', 'effect_allele', 'other_allele']
+        spark.read.parquet(in_varindex)
+        .select(
+            'chrom_b37',
+            'pos_b37',
+            'chrom_b38',
+            'pos_b38',
+            'ref',
+            'alt',
+            'af.gnomad_nfe'
+        )
+        .withColumnRenamed('chrom_b37', 'chrom')
+        .withColumnRenamed('pos_b37', 'pos')
     )
 
     #
@@ -180,8 +117,8 @@ def main():
     merged = (
         merged
         .withColumn('z', when(col('effect_allele') == col('ref'), -1 * col('z')).otherwise(col('z')))
-        .withColumn('eaf', when(col('effect_allele') == col('ref'), 1 - col('eaf')).otherwise(col('eaf')))
-        .drop('effect_allele', 'other_allele')
+        .withColumn('eaf', when(col('effect_allele') == col('ref'), 1 - col('gnomad_nfe')).otherwise(col('gnomad_nfe')))
+        .drop('effect_allele', 'other_allele', 'gnomad_nfe')
     )
 
     #
