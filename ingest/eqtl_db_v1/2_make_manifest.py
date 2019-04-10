@@ -20,7 +20,7 @@ def main():
         'Fairfax_2014',
         'GENCORD',
         'GEUVADIS',
-        'HipSci',
+        # 'HipSci',
         'Naranbhai_2015',
         'Nedelec_2016',
         'Quach_2016',
@@ -38,7 +38,7 @@ def main():
             record['study_id'] = study.upper()
             record['in_nominal'] = "gs://genetics-portal-raw/eqtl_db_v1/split/{}/*/*.nominal.sorted.txt.split*.gz".format(study)
             record['in_varinfo'] = "gs://genetics-portal-raw/eqtl_db_v1/split/{}/*/*.variant_information.txt.split*.gz".format(study)
-            record['in_gene_meta'] = "gs://genetics-portal-raw/eqtl_db_v1/raw/*_gene_metadata.txt"
+            record['in_gene_meta'] = "gs://genetics-portal-raw/eqtl_db_v1/*_gene_metadata.txt"
             record['in_biofeatures_map'] = "gs://genetics-portal-data/lut/biofeature_lut_190328.json"
             record['out_parquet'] = "gs://genetics-portal-sumstats-b38/unfiltered/molecular_trait/{}.parquet".format(record['study_id'])
 

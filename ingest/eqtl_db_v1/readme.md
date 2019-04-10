@@ -1,5 +1,29 @@
+Ingest eQTL DB sumstats
+=======================
+
+Spark workflow to read, clean and transfrom summary stats from eQTL DB.
+
+#### Usage
+
 ```
-# Start cluster
+# Obtain summary stats
+
+# Split into e.g. 300 chunks or unzip
+
+# Create manifest file
+python 2_make_manifest.py
+
+# Start large cluster (see below)
+
+# Submit jobs to cluster
+python run_all.py
+
+# Increase number of preemptible workers through browser interface
+
+```
+
+```
+# Start test cluster
 gcloud beta dataproc clusters create \
     em-cluster-eqtldb-ingest \
     --image-version=preview \
@@ -14,10 +38,24 @@ gcloud beta dataproc clusters create \
     --single-node \
     --max-idle=10m
 
-# Submit to cluster
-gcloud dataproc jobs submit pyspark \
-    --cluster=em-cluster-eqtldb-ingest \
-    2_process.py
+# Start large cluster
+gcloud beta dataproc clusters create \
+     em-cluster-eqtldb-ingest \
+    --image-version=preview \
+    --metadata 'CONDA_PACKAGES=scipy pandas' \
+    --initialization-actions gs://dataproc-initialization-actions/python/conda-install.sh \
+    --properties=spark:spark.debug.maxToStringFields=100,spark:spark.master=yarn \
+    --master-machine-type=n1-highmem-8 \
+    --master-boot-disk-size=1TB \
+    --num-master-local-ssds=0 \
+    --num-preemptible-workers=0 \
+    --worker-machine-type=n1-standard-16 \
+    --num-workers=2 \
+    --worker-boot-disk-size=1TB \
+    --num-worker-local-ssds=1 \
+    --zone=europe-west1-d \
+    --initialization-action-timeout=20m \
+    --max-idle=10m
 
 # To monitor
 gcloud compute ssh em-cluster-eqtldb-ingest-m \

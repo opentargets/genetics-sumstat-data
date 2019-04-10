@@ -3,7 +3,7 @@
 #
 # Ed Mountjoy
 #
-# Requires scipy and pandas
+# Requires pandas
 
 '''
 # Set SPARK_HOME and PYTHONPATH to use 2.4.0
@@ -26,15 +26,19 @@ def main():
     # Args
     min_mac = 5
 
-    # File args (local)
-    in_gtex = 'example_data/gtex/*.allpairs.tsv'
-    in_varindex = 'example_data/varindex_part-00000-2f1d26b6-a5b6-428f-9e62-affcd1ef6971-c000.snappy.parquet'
-    in_biofeature_map = 'example_data/biofeature_lut_190208.json'
-    out_stats = 'output/GTEX_v7.gnomad_merge_stats.tsv'
-    out_parquet = 'output/GTEX_v7'
+    # # File args (local)
+    # in_gtex = 'example_data/gtex/*.allpairs.tsv'
+    # in_varindex = 'example_data/varindex_part-00000-2f1d26b6-a5b6-428f-9e62-affcd1ef6971-c000.snappy.parquet'
+    # in_biofeature_map = 'example_data/biofeature_lut_190208.json'
+    # out_stats = 'output/GTEX_v7.gnomad_merge_stats.tsv'
+    # out_parquet = 'output/GTEX_v7'
     
     # File args (server)
-    # TODO
+    in_gtex = 'gs://genetics-portal-raw/eqtl_gtex_v7/allpairs_split/*.allpairs.txt.*.gz'
+    in_varindex = 'gs://genetics-portal-data/variant-annotation/190129/variant-annotation.parquet'
+    in_biofeature_map = 'gs://genetics-portal-data/lut/biofeature_lut_190328.json'
+    out_stats = 'gs://genetics-portal-analysis/ingest_logs/GTEX_v7.gnomad_merge_stats.tsv'
+    out_parquet = 'gs://genetics-portal-sumstats-b38/unfiltered/molecular_trait/GTEX_V7'
 
     # Make spark session
     global spark
@@ -139,7 +143,7 @@ def main():
         how='left'
     )
 
-    # Print how many are missing from gnomad
+    # Save how many are missing from gnomad
     merge_stats = (
         intersection
         .agg(

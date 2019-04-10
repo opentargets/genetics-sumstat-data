@@ -161,23 +161,43 @@ def load_gene_metadata(pattern):
 
 def load_variant_info(pattern):
     ''' Loads QTLtools variant info file to spark df
+    
+    Input schema:
+    |-- chrom: string (nullable = true)
+    |-- pos: integer (nullable = true)
+    |-- varid: string (nullable = true)
+    |-- ref: string (nullable = true)
+    |-- alt: string (nullable = true)
+    |-- type: string (nullable = true)
+    |-- AC: integer (nullable = true)
+    |-- AN: integer (nullable = true)
+    |-- MAF: double (nullable = true)
+    |-- info: double (nullable = true)
     '''
+    import_schema = (
+        StructType()
+        .add('chrom', StringType())
+        .add('pos', IntegerType())
+        .add('varid', StringType())
+        .add('ref', StringType())
+        .add('alt', StringType())
+        .add('type', StringType())
+        .add('AC', IntegerType())
+        .add('AN', IntegerType())
+        .add('MAF', DoubleType())
+        .add('info', DoubleType())
+    )
     df = (
         spark.read.csv(pattern,
                        sep='\t',
-                       inferSchema=True,
+                       schema=import_schema,
                        enforceSchema=True,
-                       header=False) )
-
-    # Add column names
-    cols = ['chrom', 'pos', 'varid', 'ref', 'alt', 'type', 'AC', 'AN', 'MAF',
-            'info']
-    df = df.toDF(*cols)
+                       header=False)
+    )
 
     # Calc sample size, EAF, MAC - then drop unneeded
     df = (
-        df.withColumn('chrom', col('chrom').cast('string'))
-          .withColumn('n_total', (col('AN') / 2).cast('int'))
+        df.withColumn('n_total', (col('AN') / 2).cast('int'))
           .withColumn('eaf', col('AC') / col('AN'))
           .withColumn('mac', least(col('AC'), col('AN') - col('AC')))
           .drop('varid', 'type', 'AC', 'AN', 'MAF')
@@ -193,18 +213,48 @@ def load_variant_info(pattern):
 
 def load_nominal_data(pattern):
     ''' Loads QTLtools nominal results file to spark df
+    
+    Input schema:
+    |-- phenotype_id: string (nullable = true)
+    |-- pheno_chrom: string (nullable = true)
+    |-- pheno_start: integer (nullable = true)
+    |-- pheno_end: integer (nullable = true)
+    |-- pheno_strand: string (nullable = true)
+    |-- num_tests: integer (nullable = true)
+    |-- tss_dist: integer (nullable = true)
+    |-- var_id: string (nullable = true)
+    |-- chrom: string (nullable = true)
+    |-- pos: integer (nullable = true)
+    |-- var_null: integer (nullable = true)
+    |-- pval: double (nullable = true)
+    |-- beta: double (nullable = true)
+    |-- is_sentinal: boolean (nullable = true)
+
     '''
+    import_schema = (
+        StructType()
+        .add('phenotype_id', StringType())
+        .add('pheno_chrom', StringType())
+        .add('pheno_start', IntegerType())
+        .add('pheno_end', IntegerType())
+        .add('pheno_strand', StringType())
+        .add('num_tests', IntegerType())
+        .add('tss_dist', IntegerType())
+        .add('var_id', StringType())
+        .add('chrom', StringType())
+        .add('pos', IntegerType())
+        .add('var_null', IntegerType())
+        .add('pval', DoubleType())
+        .add('beta', DoubleType())
+        .add('is_sentinal', IntegerType())
+    )
     df = (
         spark.read.csv(pattern,
                        sep='\t',
-                       inferSchema=True,
+                       schema=import_schema,
                        enforceSchema=True,
-                       header=False) )
-    # Add column names
-    cols = ['phenotype_id', 'pheno_chrom', 'pheno_start', 'pheno_end',
-            'pheno_strand', 'num_tests', 'tss_dist', 'var_id',
-            'chrom', 'pos', 'var_null', 'pval', 'beta', 'is_sentinal']
-    df = df.toDF(*cols)
+                       header=False)
+    )
 
     # Split alleles
     parts = split(df.var_id, '_')
@@ -227,8 +277,7 @@ def load_nominal_data(pattern):
     df = (
         df.drop('var_null', 'pheno_strand', 'pheno_chrom', 'pheno_start',
                 'pheno_end', 'var_id')
-          .withColumn('chrom', df.chrom.cast('string'))
-          .withColumn('is_sentinal', df.is_sentinal.cast('boolean'))
+        #   .withColumn('is_sentinal', df.is_sentinal.cast('boolean'))
           .select(['phenotype_id', 'biofeature_str', 'chrom', 'pos', 'ref',
                    'alt', 'pval', 'beta', 'se', 'num_tests'])
     )
