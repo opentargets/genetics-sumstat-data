@@ -23,6 +23,7 @@ from collections import OrderedDict
 import scipy.stats as st
 import argparse
 
+
 def main():
 
     # Parse args
@@ -63,21 +64,23 @@ def main():
     perc_97th = 1.95996398454005423552
     to_do = (data.oddsr.isNotNull() & data.oddsr_lower.isNotNull())
     data = (
-        data.withColumn('beta', when(to_do, log(data.oddsr)).otherwise(data.beta))
-          .withColumn('se', when(to_do, (log(data.oddsr) - log(data.oddsr_lower))/perc_97th ).otherwise(data.se))
-          .drop('oddsr', 'oddsr_lower')
+        data.withColumn('beta', when(
+            to_do, log(data.oddsr)).otherwise(data.beta))
+        .withColumn('se', when(to_do, (log(data.oddsr) - log(data.oddsr_lower))/perc_97th).otherwise(data.se))
+        .drop('oddsr', 'oddsr_lower')
     )
 
     # Impute standard error if missing
     to_do = (data.beta.isNotNull() & data.pval.isNotNull() & data.se.isNull())
     data = (
         data.withColumn('z_abs', abs(ppf_udf(col('pval'))))
-          .withColumn('se', when(to_do, abs(col('beta')) / col('z_abs')).otherwise(col('se')))
-          .drop('z_abs')
+        .withColumn('se', when(to_do, abs(col('beta')) / col('z_abs')).otherwise(col('se')))
+        .drop('z_abs')
     )
 
     # Drop NAs, eaf null is ok as this will be inferred from a reference
-    data = data.dropna(subset=['chrom', 'pos', 'ref', 'alt', 'pval', 'beta', 'se'])
+    data = data.dropna(
+        subset=['chrom', 'pos', 'ref', 'alt', 'pval', 'beta', 'se'])
 
     #
     # Stop if there are no few rows --------------------------------------------
@@ -87,7 +90,8 @@ def main():
 
     nrows = data.count()
     if nrows < args.min_rows:
-        print('Skpping as only {0} rows in {1}'.format(nrows, args.in_sumstats))
+        print('Skpping as only {0} rows in {1}'.format(
+            nrows, args.in_sumstats))
         return 0
 
     #
@@ -113,8 +117,8 @@ def main():
         data = (
             data.withColumn('eaf', when(col('eaf').isNull(),
                                         col('gnomad_nfe'))
-                                       .otherwise(col('eaf')))
-                .drop('gnomad_nfe')
+                            .otherwise(col('eaf')))
+            .drop('gnomad_nfe')
         )
 
     # Drop rows without effect allele frequency
@@ -135,24 +139,25 @@ def main():
 
     # Calculate and filter based on MAC or MAC_cases
     data = (
-        data.withColumn('maf', when(col('eaf') <= 0.5, col('eaf')).otherwise(1 - col('eaf')))
-            .withColumn('mac', col('n_total') * 2 * col('maf'))
-            .withColumn('mac_cases', col('n_cases') * 2 * col('maf'))
-            .filter((col('mac') >= args.min_mac) & ((col('mac_cases') >= args.min_mac) | col('mac_cases').isNull()))
-            .drop('maf')
+        data.withColumn('maf', when(col('eaf') <= 0.5,
+                                    col('eaf')).otherwise(1 - col('eaf')))
+        .withColumn('mac', col('n_total') * 2 * col('maf'))
+        .withColumn('mac_cases', col('n_cases') * 2 * col('maf'))
+        .filter((col('mac') >= args.min_mac) & ((col('mac_cases') >= args.min_mac) | col('mac_cases').isNull()))
+        .drop('maf')
     )
 
     # If pval == 0.0, set to minimum float
     data = (
         data.withColumn('pval', when(col('pval') == 0.0,
                                      sys.float_info.min)
-                                     .otherwise(col('pval')))
+                        .otherwise(col('pval')))
     )
 
     # Add study information columns
     data = (
         data.withColumn('type', lit('gwas'))
-            .withColumn('study_id', lit(args.study_id).cast(StringType()))
+            .withColumn('study_id', lit(args.study_id))
             .withColumn('phenotype_id', lit(None).cast(StringType()))
             .withColumn('bio_feature', lit(None).cast(StringType()))
             .withColumn('gene_id', lit(None).cast(StringType()))
@@ -198,32 +203,30 @@ def main():
     (
         data.write.parquet(
             args.out_parquet,
-            compression='snappy')
+            compression='snappy',
+            mode='overwrite')
     )
 
     print('Completed in {:.1f} secs'.format(time() - start_time))
 
     return 0
 
+
 def load_sumstats(inf):
     ''' Load a harmonised GWAS Catalog file
     '''
     # Read
-    df = ( spark.read.csv(inf,
-                          sep='\t',
-                          inferSchema=True,
-                          enforceSchema=True,
-                          header=True,
-                          nullValue='NA') )
-
-    # If "low_confidence_variant" exists, filter based on it
-    if 'low_confidence_variant' in df.columns:
-        df = df.filter(~col('low_confidence_variant'))
+    df = (spark.read.csv(inf,
+                         sep='\t',
+                         inferSchema=False,
+                         enforceSchema=True,
+                         header=True,
+                         nullValue='NA'))
 
     # Specify new names and types
     column_d = OrderedDict([
-        ('chromosome', ('chrom', StringType())),
-        ('base_pair_location', ('pos', IntegerType())),
+        ('hm_chrom', ('chrom', StringType())),
+        ('hm_pos', ('pos', IntegerType())),
         ('hm_other_allele', ('ref', StringType())),
         ('hm_effect_allele', ('alt', StringType())),
         ('p_value', ('pval', DoubleType())),
@@ -245,32 +248,47 @@ def load_sumstats(inf):
 
     # Change type and name of all columns
     for column in column_d.keys():
-        df = ( df.withColumn(column, col(column).cast(column_d[column][1]))
-                 .withColumnRenamed(column, column_d[column][0]) )
+        df = (df.withColumn(column, col(column).cast(column_d[column][1]))
+              .withColumnRenamed(column, column_d[column][0]))
+
+    # If "low_confidence_variant" exists, filter based on it
+    if 'low_confidence_variant' in df.columns:
+        df = df.filter(~col('low_confidence_variant'))
 
     # Repartition
     df = df.repartitionByRange('chrom', 'pos')
 
     return df
 
+
 def ppf(pval):
     ''' Return inverse cumulative distribution function of the normal
         distribution. Needed to calculate stderr.
     '''
     return float(st.norm.ppf(pval / 2))
+
+
 ppf_udf = udf(ppf, DoubleType())
+
 
 def parse_args():
     """ Load command line args """
     parser = argparse.ArgumentParser()
-    parser.add_argument('--in_sumstats', metavar="<file>", help=('Input sumstat file file'), type=str, required=True)
-    parser.add_argument('--in_af', metavar="<file>", help=('Input allele frequency parquet'), type=str, required=True)
-    parser.add_argument('--out_parquet', metavar="<file>", help=("Output file"), type=str, required=True)
-    parser.add_argument('--study_id', metavar="<str>", help=("Study ID"), type=str, required=True)
-    parser.add_argument('--n_total', metavar="<int>", help=("Total sample size"), type=int, required=True)
-    parser.add_argument('--n_cases', metavar="<int>", help=("Number of cases"), type=int, required=False)
+    parser.add_argument('--in_sumstats', metavar="<file>",
+                        help=('Input sumstat file file'), type=str, required=True)
+    parser.add_argument('--in_af', metavar="<file>",
+                        help=('Input allele frequency parquet'), type=str, required=True)
+    parser.add_argument('--out_parquet', metavar="<file>",
+                        help=("Output file"), type=str, required=True)
+    parser.add_argument('--study_id', metavar="<str>",
+                        help=("Study ID"), type=str, required=True)
+    parser.add_argument('--n_total', metavar="<int>",
+                        help=("Total sample size"), type=int, required=True)
+    parser.add_argument('--n_cases', metavar="<int>",
+                        help=("Number of cases"), type=int, required=False)
     args = parser.parse_args()
     return args
+
 
 if __name__ == '__main__':
 

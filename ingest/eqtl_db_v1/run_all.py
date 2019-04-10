@@ -21,8 +21,8 @@ def main():
     # Run each job in the manifest
     for c, line in enumerate(open(in_manifest, 'r')):
 
-        if c == 0:
-            continue
+        # if c == 0:
+        #     continue
 
         manifest = json.loads(line)
 
@@ -41,6 +41,7 @@ def main():
             cmd = [
                 'gcloud dataproc jobs submit pyspark',
                 '--cluster={0}'.format(cluster_name),
+                '--properties spark.submit.deployMode=cluster',
                 '--async',
                 script,
                 '--'
@@ -60,8 +61,6 @@ def main():
         sp.call(' '.join(cmd), shell=True)
         print('Complete\n')
         time.sleep(0.5)
-
-        # break # DEBUG
 
     return 0
 

@@ -21,7 +21,8 @@ python create_ukb_manifest.py
 # Submit jobs to cluster
 python run_all.py
 
-# Increase cluster side through Google Cloud Console if required
+# Check that its working as expected, then increase cluster number of workers
+
 
 # Check outputs and any errors
 ```
@@ -40,9 +41,8 @@ gcloud beta dataproc clusters create \
     --master-boot-disk-size=1TB \
     --num-master-local-ssds=0 \
     --num-preemptible-workers=0 \
-    --preemptible-worker-boot-disk-size=1TB \
-    --worker-machine-type=n1-standard-64 \
-    --num-workers=3 \
+    --worker-machine-type=n1-standard-16 \
+    --num-workers=2 \
     --worker-boot-disk-size=1TB \
     --num-worker-local-ssds=1 \
     --zone=europe-west1-d \

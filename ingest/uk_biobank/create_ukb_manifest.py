@@ -115,9 +115,21 @@ def main():
         'NEALE2_22601_',  # Job codes
         'NEALE2_22617_',  # Job codes
         'NEALE2_22660_',  # Job codes
+        'NEALE2_22650_',  # Job codes
+        'NEALE2_6142_',  # Job codes
         'NEALE2_20079_',  # Day of week questionnaire
         'NEALE2_20118_',  # Home area
         'NEALE2_41248_',  # Hospital discharge destination 
+        'NEALE2_20090_',  # Foods
+        'NEALE2_20095_',  # Wine
+        'NEALE2_2654_',  # Butter
+        'NEALE2_6144_',  # Eggs
+        'NEALE2_3446_',  # Tobacco type
+        'NEALE2_6141_',  # Relatedness
+        'NEALE2_6140_',  # Type of heating
+        'NEALE2_6160_',  # Social activites
+        'NEALE2_670_',  # Accommodation
+        'NEALE2_680_',  # Accommodation
         ]
     for code_prefix in uneeded_study_prefixes:
         to_remove = merged.code.str.startswith(code_prefix)

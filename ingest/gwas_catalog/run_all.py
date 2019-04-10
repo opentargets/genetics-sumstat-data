@@ -13,16 +13,13 @@ import time
 def main():
 
     # Args
-    in_manifest = 'configs/ukb.manifest.head.json'
+    in_manifest = 'configs/gwascatalog.manifest.json'
     script = 'scripts/process.py'
     run_remote = True
     cluster_name = 'em-ingest-gwascatalog'
 
     # Run each job in the manifest
     for c, line in enumerate(open(in_manifest, 'r')):
-
-        if c == 0:
-            continue
 
         manifest = json.loads(line)
 
@@ -44,6 +41,7 @@ def main():
             cmd = [
                 'gcloud dataproc jobs submit pyspark',
                 '--cluster={0}'.format(cluster_name),
+                '--properties spark.submit.deployMode=cluster',
                 '--async',
                 script,
                 '--'
