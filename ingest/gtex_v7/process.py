@@ -133,7 +133,7 @@ def main():
     )
 
     #
-    # Figure out which allele is the minor allele for each variant ------------
+    # Figure out which allele is the effect allele for each variant ------------
     #
 
     # Perform left join with gnomad index

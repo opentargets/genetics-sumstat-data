@@ -3,8 +3,6 @@
 gcloud beta dataproc clusters create \
     em-cluster-sunpqtl-ingest \
     --image-version=preview \
-    --metadata 'CONDA_PACKAGES=pandas' \
-    --initialization-actions gs://dataproc-initialization-actions/python/conda-install.sh \
     --properties=spark:spark.debug.maxToStringFields=100,spark:spark.executor.cores=31,spark:spark.executor.instances=1 \
     --master-machine-type=n1-standard-32 \
     --master-boot-disk-size=1TB \

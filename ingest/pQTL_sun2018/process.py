@@ -30,16 +30,21 @@ def main():
     sample_size = 3301
     cis_dist = 1e6
 
-    # File args (local)
-    in_sumstats = 'example_data/pqtls/*/*.tsv'
-    in_varindex = 'example_data/variant-annotation.sitelist.tsv'
-    in_genes = 'example_data/gene_dictionary.json'
-    in_manifest = 'example_data/001_SOMALOGIC_GWAS_protein_info.csv'
-    in_ensembl_map = 'example_data/Sun_pQTL_uniprot_ensembl_lut.tsv'
-    out_parquet = 'output/SUN2018'
+    # # File args (local)
+    # in_sumstats = 'example_data/pqtls/*/*.tsv'
+    # in_varindex = 'example_data/variant-annotation.sitelist.tsv'
+    # in_genes = 'example_data/gene_dictionary.json'
+    # in_manifest = 'example_data/001_SOMALOGIC_GWAS_protein_info.csv'
+    # in_ensembl_map = 'example_data/Sun_pQTL_uniprot_ensembl_lut.tsv'
+    # out_parquet = 'output/SUN2018'
     
     # File args (server)
-    # TODO
+    in_sumstats = 'gs://genetics-portal-raw/pqtl_sun2018/raw_data/*/*.tsv.gz'
+    in_varindex = 'gs://genetics-portal-data/variant-annotation/190129/variant-annotation.parquet'
+    in_genes = 'gs://genetics-portal-data/lut/gene_dictionary.json'
+    in_manifest = 'gs://genetics-portal-raw/pqtl_sun2018/raw_data/001_SOMALOGIC_GWAS_protein_info.csv'
+    in_ensembl_map = 'gs://genetics-portal-raw/pqtl_sun2018/Sun_pQTL_uniprot_ensembl_lut.tsv'
+    out_parquet = 'gs://genetics-portal-sumstats-b38/unfiltered/molecular_trait/SUN2018'
 
     # Make spark session
     global spark
@@ -82,47 +87,49 @@ def main():
         .drop('log10_pval')
     )
 
-    # Load varindex
-    print('WARNING: using test variant index, including random eaf')
-    sys.exit('EXITING to make sure I dont forget to change this in production')
-    import_schema = (
-        StructType()
-        .add('locus', StringType())
-        .add('alleles', StringType())
-        .add('chrom', StringType())
-        .add('pos', IntegerType())
-        .add('chrom_b38', StringType())
-        .add('pos_b38', IntegerType())
-        .add('ref', StringType())
-        .add('alt', StringType())
-        .add('rsid', StringType())
-    )
-    varindex = (
-        spark.read.csv(
-            path=in_varindex,
-            sep='\t',
-            schema=import_schema,
-            enforceSchema=True,
-            header=True,
-            comment='#')
-        .drop('locus', 'alleles', 'rsid')
-        .withColumn('eaf', rand())
-    )
     # # Load varindex
-    # varindex = (
-    #     spark.read.parquet(in_varindex)
-    #     .select(
-    #         'chrom_b37',
-    #         'pos_b37',
-    #         'chrom_b38',
-    #         'pos_b38',
-    #         'ref',
-    #         'alt',
-    #         'af.gnomad_nfe'
-    #     )
-    #     .withColumnRenamed('chrom_b37', 'chrom')
-    #     .withColumnRenamed('pos_b37', 'pos')
+    # print('WARNING: using test variant index, including random eaf')
+    # sys.exit('EXITING to make sure I dont forget to change this in production')
+    # import_schema = (
+    #     StructType()
+    #     .add('locus', StringType())
+    #     .add('alleles', StringType())
+    #     .add('chrom', StringType())
+    #     .add('pos', IntegerType())
+    #     .add('chrom_b38', StringType())
+    #     .add('pos_b38', IntegerType())
+    #     .add('ref', StringType())
+    #     .add('alt', StringType())
+    #     .add('rsid', StringType())
     # )
+    # varindex = (
+    #     spark.read.csv(
+    #         path=in_varindex,
+    #         sep='\t',
+    #         schema=import_schema,
+    #         enforceSchema=True,
+    #         header=True,
+    #         comment='#')
+    #     .drop('locus', 'alleles', 'rsid')
+    #     .withColumn('eaf', rand())
+    # )
+
+    # Load varindex
+    varindex = (
+        spark.read.parquet(in_varindex)
+        .select(
+            'chrom_b37',
+            'pos_b37',
+            'chrom_b38',
+            'pos_b38',
+            'ref',
+            'alt',
+            'af.gnomad_nfe'
+        )
+        .withColumnRenamed('chrom_b37', 'chrom')
+        .withColumnRenamed('pos_b37', 'pos')
+        .withColumnRenamed('gnomad_nfe', 'eaf')
+    )
 
     # Load manifest
     manifest = (
@@ -148,7 +155,6 @@ def main():
         spark.read.json(in_genes)
         .select('gene_id', 'chr', 'tss')
         .withColumnRenamed('chr', 'chrom')
-        
     )
 
     #
@@ -170,7 +176,7 @@ def main():
 
     # Merge manifest to sumstats
     sumstats = sumstats.join(
-        manifest,
+        broadcast(manifest),
         on=['phenotype_id', 'chrom']
     )
 

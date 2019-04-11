@@ -17,7 +17,7 @@ gcloud beta dataproc clusters create \
 # Submit to cluster
 gcloud dataproc jobs submit pyspark \
     --cluster=em-cluster-gtex7-ingest \
-    process.py
+    process_v2.py
 
 # To monitor
 gcloud compute ssh em-cluster-gtex7-ingest-m \
