@@ -13,6 +13,7 @@ export PYTHONPATH=$SPARK_HOME/python:$SPARK_HOME/python/lib/py4j-2.4.0-src.zip:$
 
 import sys
 import argparse
+import pandas as pd
 import pyspark.sql
 from pyspark.sql.types import *
 from pyspark.sql.functions import *
@@ -27,7 +28,7 @@ def main():
     global spark
     spark = (
         pyspark.sql.SparkSession.builder
-        .config("parquet.enable.summary-metadata", "true")
+        # .config("parquet.enable.summary-metadata", "true")
         .getOrCreate()
     )
     print('Spark version: ', spark.version)
@@ -37,6 +38,17 @@ def main():
         spark.read.parquet(args.in_sumstats)
         .withColumn('chrom', col('chrom').cast('string'))
     )
+    # # Load
+    # df = (
+    #     spark.read.csv(
+    #         path=args.in_sumstats,
+    #         sep='\t',
+    #         inferSchema=True,
+    #         header=True,
+    #         nullValue='NA',
+    #         comment='#')
+    # )
+    # df = df.withColumn('chrom', col('chrom').cast('string'))
 
     # Select rows that have "significant" p-values
     if args.data_type == 'gwas':
@@ -47,35 +59,28 @@ def main():
         sig
         .select('study_id', 'phenotype_id', 'bio_feature', 'chrom', 'pos')
     )
-    
-    # Rename columns so that they can be removed after merge
-    dup_cols = ['study_id', 'phenotype_id', 'bio_feature', 'chrom', 'pos']
-    for colname in dup_cols:
-        sig = sig.withColumnRenamed(colname, 'dup_' + colname)
 
-    # Merge back onto main table
+    # Create intervals to keep based on specified window. Overlapping intervals
+    # are merged to increase efficiency of join below
+    intervals = create_intervals_to_keep(sig, window=args.window)
+
+    # Join main table to intervals to keep with semi left join
     merged = (
-        df.alias('main').join(sig.alias('sig'),
+        df.alias('main').join(broadcast(intervals.alias('intervals')),
         (
-            (col('main.study_id') == col('sig.dup_study_id')) &
-            (col('main.phenotype_id').eqNullSafe(col('sig.dup_phenotype_id'))) &
-            (col('main.bio_feature').eqNullSafe(col('sig.dup_bio_feature'))) &
-            (col('main.chrom') == col('sig.dup_chrom')) &
-            (abs(col('main.pos') - col('sig.dup_pos')) <= args.window)
-        ), how='inner'
+            (col('main.study_id') == col('intervals.study_id')) &
+            (col('main.phenotype_id').eqNullSafe(col('intervals.phenotype_id'))) &
+            (col('main.bio_feature').eqNullSafe(col('intervals.bio_feature'))) &
+            (col('main.chrom') == col('intervals.chrom')) &
+            (col('main.pos') >= col('intervals.start')) &
+            (col('main.pos') <= col('intervals.end'))
+        ), how='leftsemi'
     ))
 
-    # Remove duplicated columns
-    for colname in dup_cols:
-        merged = merged.drop('dup_' + colname)
-    
-    # Remove duplicated rows
-    merged = merged.distinct()
-    
     # Repartition
     merged = (
         merged.repartitionByRange('chrom', 'pos')
-            .orderBy('chrom', 'pos', 'ref', 'alt')
+        .orderBy('chrom', 'pos')
     )
 
     # Write output
@@ -99,8 +104,94 @@ def main():
                 compression='snappy'
             )
         )
+
+    # # Write result as tsv
+    # (
+    #     merged
+    #     .coalesce(1)
+    #     .orderBy('study_id', 'chrom', 'pos')
+    #     .write.csv(args.out_sumstats.replace('.parquet', '.tsv'), header=True, mode='overwrite')
+    # )
     
     return 0
+
+def create_intervals_to_keep(df, window):
+    ''' Creates merged intervals from the significant positions
+    '''
+
+    # Create interval column
+    intervals = (
+        df.withColumn('interval', array(
+            col('pos') - window, col('pos') + window))
+          .drop('pos')
+    )
+
+    # Merge intervals
+    merged_intervals = (
+        intervals
+        .groupby('study_id', 'phenotype_id', 'bio_feature', 'chrom')
+        .apply(merge_intervals)
+        .withColumn('start', when(col('start') > 0, col('start')).otherwise(0))
+    )
+
+    return merged_intervals
+
+# Create return schema for merge function
+ret_schema = (
+    StructType()
+    .add('study_id', StringType())
+    .add('phenotype_id', StringType())
+    .add('bio_feature', StringType())
+    .add('chrom', StringType())
+    .add('start', IntegerType())
+    .add('end', IntegerType())
+)
+
+@pandas_udf(ret_schema, PandasUDFType.GROUPED_MAP)
+def merge_intervals(key, pdf):
+    ''' Merge overlapping intervals
+    Params:
+        key (list of group keys)
+        pdf (pd.Df): input data
+    Returns:
+        pd.df of type ret_schema
+    '''
+    # Create list of intervals
+    intervals = (
+        pdf['interval']
+        .apply(lambda x: Interval(s=x[0], e=x[1]))
+        .tolist()
+    )
+
+    # Sort intervals
+    intervals = sorted(intervals, key=lambda x: x.start)
+
+    # Merge overlapping intervals
+    result = [intervals[0]]
+    for cur in intervals:
+        if cur.start > result[-1].end:
+            result.append(cur)
+        elif result[-1].end < cur.end:
+            result[-1].end = cur.end
+    
+    # Convert back into a df
+    res_df_rows = []
+    for interval in result:
+        res_df_rows.append(
+            list(key) + [interval.start, interval.end]
+        )
+    res_df = pd.DataFrame(
+        res_df_rows,
+        columns=['study_id', 'phenotype_id', 'bio_feature', 'chrom', 'start', 'end']
+    )
+
+    return res_df
+
+# Interval type
+class Interval(object):
+    def __init__(self, s=0, e=0):
+        self.start = s
+        self.end = e
 
 def parse_args():
     ''' Load command line args.
@@ -117,7 +208,7 @@ def parse_args():
                    help=("± window to filter by"),
                    metavar="<int>", type=int, required=True)
     p.add_argument('--pval',
-                   help=("pval threshold in window. Only used if --data_type == gwas"),
+                   help=("pval threshold in window. Only used if --data_type gwas"),
                    metavar="<float>", type=float, required=True)
     p.add_argument('--data_type',
                    help=("Whether dataset is of GWAS or molecular trait type"),

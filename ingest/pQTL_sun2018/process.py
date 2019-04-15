@@ -44,7 +44,7 @@ def main():
     in_genes = 'gs://genetics-portal-data/lut/gene_dictionary.json'
     in_manifest = 'gs://genetics-portal-raw/pqtl_sun2018/raw_data/001_SOMALOGIC_GWAS_protein_info.csv'
     in_ensembl_map = 'gs://genetics-portal-raw/pqtl_sun2018/Sun_pQTL_uniprot_ensembl_lut.tsv'
-    out_parquet = 'gs://genetics-portal-sumstats-b38/unfiltered/molecular_trait/SUN2018'
+    out_parquet = 'gs://genetics-portal-sumstats-b38/unfiltered/molecular_trait/SUN2018.parquet'
 
     # Make spark session
     global spark
