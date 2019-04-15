@@ -17,7 +17,6 @@ import pandas as pd
 import pyspark.sql
 from pyspark.sql.types import *
 from pyspark.sql.functions import *
-from pyspark.sql.window import Window
 
 def main():
 
@@ -28,7 +27,7 @@ def main():
     global spark
     spark = (
         pyspark.sql.SparkSession.builder
-        # .config("parquet.enable.summary-metadata", "true")
+        .config("parquet.enable.summary-metadata", "true")
         .getOrCreate()
     )
     print('Spark version: ', spark.version)
