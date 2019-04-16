@@ -41,7 +41,7 @@ def main():
             cmd = [
                 'gcloud dataproc jobs submit pyspark',
                 '--cluster={0}'.format(cluster_name),
-                '--properties spark.submit.deployMode=cluster',
+                # '--properties spark.submit.deployMode=cluster',
                 '--async',
                 script,
                 '--'

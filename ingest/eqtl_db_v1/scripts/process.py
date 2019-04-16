@@ -192,7 +192,8 @@ def load_variant_info(pattern):
                        sep='\t',
                        schema=import_schema,
                        enforceSchema=True,
-                       header=False)
+                       header=False,
+                       nullValue='NA')
     )
 
     # Calc sample size, EAF, MAC - then drop unneeded

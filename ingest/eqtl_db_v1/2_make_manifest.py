@@ -13,20 +13,20 @@ def main():
     # Args
     out_manifest ='configs/manifest.json'
     in_studies = [
-        'Alasoo_2018',
+        # 'Alasoo_2018',
         # 'BLUEPRINT',
         # 'CEDAR',
-        'Fairfax_2012',
-        'Fairfax_2014',
-        'GENCORD',
+        # 'Fairfax_2012',
+        # 'Fairfax_2014',
+        # 'GENCORD',
         'GEUVADIS',
         # 'HipSci',
-        'Naranbhai_2015',
-        'Nedelec_2016',
-        'Quach_2016',
-        'Schwartzentruber_2018',
+        # 'Naranbhai_2015',
+        # 'Nedelec_2016',
+        # 'Quach_2016',
+        # 'Schwartzentruber_2018',
         'TwinsUK',
-        'van_de_Bunt_2015'
+        # 'van_de_Bunt_2015'
     ]
     
     with open(out_manifest, 'w') as out_h:

@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+    #!/usr/bin/env bash
 #
 
 mkdir -p Naranbhai_2015/array
@@ -14,6 +14,11 @@ gsutil cp gs://genetics-portal-raw/eqtl_db_v1/raw/HipSci/featureCounts/iPSC.perm
 gsutil cat gs://genetics-portal-raw/eqtl_db_v1/raw/HipSci/featureCounts/iPSC.variant_information.txt.gz | zcat | head -100000 | bgzip -c > iPSC.variant_information.txt.gz
 gsutil cat gs://genetics-portal-raw/eqtl_db_v1/raw/HipSci/featureCounts/iPSC.nominal.sorted.txt.gz | zcat | head -100000 | bgzip -c > iPSC.nominal.sorted.txt.gz
 cd ../..
+
+mkdir -p GEUVADIS/featureCounts
+cd GEUVADIS/featureCounts
+gsutil cat "gs://genetics-portal-raw/eqtl_db_v1/split/GEUVADIS/*/*.nominal.sorted.txt.split00*.gz" | zcat | head -100000 | bgzip -c > LCL.nominal.sorted.txt.gz
+gsutil cat "gs://genetics-portal-raw/eqtl_db_v1/split/GEUVADIS/*/*.variant_information.txt.split00*.gz" | zcat | head -100000 | bgzip -c > LCL.variant_information.txt.gz
 
 gsutil cp gs://genetics-portal-raw/eqtl_db_v1/raw/HumanHT-12_V4_gene_metadata.txt .
 gsutil cp gs://genetics-portal-raw/eqtl_db_v1/raw/featureCounts_Ensembl_92_gene_metadata.txt .
