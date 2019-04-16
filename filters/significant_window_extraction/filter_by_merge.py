@@ -32,27 +32,39 @@ def main():
     )
     print('Spark version: ', spark.version)
 
+    # Run filtering
+    filter_significant_windows(
+        in_pq=args.in_sumstats,
+        out_pq=args.out_sumstats,
+        data_type=args.data_type,
+        window=args.window,
+        pval=args.pval
+    )
+    
+    return 0
+
+
+def filter_significant_windows(in_pq, out_pq, data_type, window, pval):
+    ''' Filters a sumstat parquet down to windows that contain a "significant"
+        variant, as determined by pval
+    Args:
+        in_pq (path): input parquet
+        out_pq (path): output parquet
+        data type (str): gwas or moltrait
+        window (int): window to extract around significant variants
+        pval (float): pvalue to be considered significant
+    '''
+
     # Load
     df = (
-        spark.read.parquet(args.in_sumstats)
+        spark.read.parquet(in_pq)
         .withColumn('chrom', col('chrom').cast('string'))
     )
-    # # Load
-    # df = (
-    #     spark.read.csv(
-    #         path=args.in_sumstats,
-    #         sep='\t',
-    #         inferSchema=True,
-    #         header=True,
-    #         nullValue='NA',
-    #         comment='#')
-    # )
-    # df = df.withColumn('chrom', col('chrom').cast('string'))
 
     # Select rows that have "significant" p-values
-    if args.data_type == 'gwas':
-        sig = df.filter(col('pval') <= args.pval)
-    elif args.data_type == 'moltrait':
+    if data_type == 'gwas':
+        sig = df.filter(col('pval') <= pval)
+    elif data_type == 'moltrait':
         sig = df.filter(col('pval') <= (0.05 / col('num_tests')))
     sig = (
         sig
@@ -61,12 +73,12 @@ def main():
 
     # Create intervals to keep based on specified window. Overlapping intervals
     # are merged to increase efficiency of join below
-    intervals = create_intervals_to_keep(sig, window=args.window)
+    intervals = create_intervals_to_keep(sig, window=window)
 
     # Join main table to intervals to keep with semi left join
     merged = (
         df.alias('main').join(broadcast(intervals.alias('intervals')),
-        (
+                              (
             (col('main.study_id') == col('intervals.study_id')) &
             (col('main.phenotype_id').eqNullSafe(col('intervals.phenotype_id'))) &
             (col('main.bio_feature').eqNullSafe(col('intervals.bio_feature'))) &
@@ -74,7 +86,7 @@ def main():
             (col('main.pos') >= col('intervals.start')) &
             (col('main.pos') <= col('intervals.end'))
         ), how='leftsemi'
-    ))
+        ))
 
     # Repartition
     merged = (
@@ -83,35 +95,27 @@ def main():
     )
 
     # Write output
-    if args.data_type == 'gwas':
+    if data_type == 'gwas':
         (
             merged
             .write.parquet(
-                args.out_sumstats,
+                out_pq,
                 mode='overwrite',
                 compression='snappy'
             )
         )
-    elif args.data_type == 'moltrait':
+    elif data_type == 'moltrait':
         (
             merged
             .write
             .partitionBy('bio_feature', 'chrom')
             .parquet(
-                args.out_sumstats,
+                out_pq,
                 mode='overwrite',
                 compression='snappy'
             )
         )
 
-    # # Write result as tsv
-    # (
-    #     merged
-    #     .coalesce(1)
-    #     .orderBy('study_id', 'chrom', 'pos')
-    #     .write.csv(args.out_sumstats.replace('.parquet', '.tsv'), header=True, mode='overwrite')
-    # )
-    
     return 0
 
 def create_intervals_to_keep(df, window):

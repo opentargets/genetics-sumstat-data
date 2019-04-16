@@ -15,18 +15,18 @@ gsutil -m ls "gs://genetics-portal-sumstats-b38/filtered/significant_window_2mb/
 # Start cluster (see below)
 
 # Queue all
-python run_all.py
+python queue_all.py
 
 ```
 
-```
+```bash
 # Start cluster
 gcloud beta dataproc clusters create \
     em-sumstatfilter \
     --image-version=preview \
-    --metadata 'CONDA_PACKAGES=scipy pandas' \
+    --metadata 'CONDA_PACKAGES=pandas pyarrow' \
     --initialization-actions gs://dataproc-initialization-actions/python/conda-install.sh \
-    --properties=spark:spark.debug.maxToStringFields=100,spark:spark.master=yarn \
+    --properties=spark:spark.debug.maxToStringFields=100,spark:spark.master=yarn,yarn:yarn.scheduler.capacity.resource-calculator=org.apache.hadoop.yarn.util.resource.DominantResourceCalculator \
     --master-machine-type=n1-highmem-8 \
     --master-boot-disk-size=1TB \
     --num-preemptible-workers=0 \
@@ -41,9 +41,10 @@ gcloud beta dataproc clusters create \
 gcloud beta dataproc clusters create \
     em-sumstatfilter \
     --image-version=preview \
-    --metadata 'CONDA_PACKAGES=scipy pandas' \
+    --metadata 'CONDA_PACKAGES=pandas pyarrow' \
     --initialization-actions gs://dataproc-initialization-actions/python/conda-install.sh \
-    --master-machine-type=n1-standard-32 \
+    --properties=spark:spark.debug.maxToStringFields=100,spark:spark.master=yarn,yarn:yarn.scheduler.capacity.resource-calculator=org.apache.hadoop.yarn.util.resource.DominantResourceCalculator \
+    --master-machine-type=n1-highmem-32 \
     --master-boot-disk-size=1TB \
     --num-master-local-ssds=1 \
     --zone=europe-west1-d \
