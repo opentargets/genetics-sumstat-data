@@ -21,7 +21,7 @@ from functools import reduce
 def main():
 
     # Args
-    in_path = 'genetics-portal-sumstats-b38/unfiltered/molecular_trait'
+    in_path = 'gs://genetics-portal-sumstats-b38/unfiltered/molecular_trait'
     study_list = [
         'ALASOO_2018.parquet',
         'BLUEPRINT.parquet',
@@ -48,7 +48,6 @@ def main():
     global spark
     spark = (
         pyspark.sql.SparkSession.builder
-        .config("parquet.enable.summary-metadata", "true")
         .getOrCreate()
     )
     print('Spark version: ', spark.version)
@@ -65,11 +64,11 @@ def main():
     # Filter
     df = df.filter(col('pval') <= pval_threshold)
     
-    # Repartition
-    df = (
-        df.repartitionByRange('chrom', 'pos')
-        .orderBy('chrom', 'pos')
-    )
+    # # Repartition
+    # df = (
+    #     df.repartitionByRange('chrom', 'pos')
+    #     .orderBy('chrom', 'pos')
+    # )
 
     # Save
     (
@@ -77,7 +76,7 @@ def main():
         .write.json(
             outf,
             mode='overwrite',
-            compression='gzip'
+            # compression='gzip'
         )
     )
     

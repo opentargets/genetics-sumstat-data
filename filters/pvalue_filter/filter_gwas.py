@@ -18,7 +18,12 @@ from pyspark.sql.functions import *
 
 def main():
 
-    # Args
+    # # Args (local)
+    # in_pattern = 'example_data/gwas/*.parquet'
+    # outf = 'output/gwas_uncompressed'
+    # pval_threshold = 0.05
+ 
+    # Args (server)
     in_pattern = 'gs://genetics-portal-sumstats-b38/unfiltered/gwas/*.parquet'
     outf = 'gs://genetics-portal-sumstats-b38/filtered/pvalue_0.05/gwas'
     pval_threshold = 0.05
@@ -27,7 +32,6 @@ def main():
     global spark
     spark = (
         pyspark.sql.SparkSession.builder
-        .config("parquet.enable.summary-metadata", "true")
         .getOrCreate()
     )
     print('Spark version: ', spark.version)
@@ -38,11 +42,11 @@ def main():
     # Filter
     df = df.filter(col('pval') <= pval_threshold)
     
-    # Repartition
-    df = (
-        df.repartitionByRange('chrom', 'pos')
-        .orderBy('chrom', 'pos')
-    )
+    # # Repartition
+    # df = (
+    #     df.repartitionByRange('chrom', 'pos')
+    #     .orderBy('chrom', 'pos')
+    # )
 
     # Save
     (
@@ -50,7 +54,7 @@ def main():
         .write.json(
             outf,
             mode='overwrite',
-            compression='gzip'
+            # compression='gzip'
         )
     )
     
