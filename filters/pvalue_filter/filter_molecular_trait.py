@@ -21,12 +21,27 @@ from functools import reduce
 def main():
 
     # Args
-    in_path = 'example_data/molecular_trait'
+    in_path = 'genetics-portal-sumstats-b38/unfiltered/molecular_trait'
     study_list = [
+        'ALASOO_2018.parquet',
+        'BLUEPRINT.parquet',
+        'CEDAR.parquet',
+        'FAIRFAX_2012.parquet',
+        'FAIRFAX_2014.parquet',
+        'GENCORD.parquet',
+        'GEUVADIS.parquet',
+        'GTEX_V7.parquet',
+        'HIPSCI.parquet',
+        'NARANBHAI_2015.parquet',
+        'NEDELEC_2016.parquet',
+        'QUACH_2016.parquet',
         'SCHWARTZENTRUBER_2018.parquet',
-        'SUN2018.parquet'
+        'SUN2018.parquet',
+        'TWINSUK.parquet',
+        'VAN_DE_BUNT_2015.parquet',
+        'eQTLGen.parquet'
     ]
-    outf = 'output/molecular_trait'
+    outf = 'gs://genetics-portal-sumstats-b38/filtered/pvalue_0.05/molecular_trait'
     pval_threshold = 0.05
 
     # Make spark session
@@ -41,8 +56,8 @@ def main():
     # Load list of datasets
     dfs = []
     for in_path in [os.path.join(in_path, study) for study in study_list]:
-        df = spark.read.parquet(in_path)
-        dfs.append(df)
+        df_temp = spark.read.parquet(in_path)
+        dfs.append(df_temp)
     
     # Take union
     df = reduce(pyspark.sql.DataFrame.unionByName, dfs)
