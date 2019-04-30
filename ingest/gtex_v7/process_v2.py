@@ -37,7 +37,7 @@ def main():
     in_gtex = 'gs://genetics-portal-raw/eqtl_gtex_v7/allpairs_split/{tissue}.allpairs.txt.*.gz'
     in_varindex = 'gs://genetics-portal-data/variant-annotation/190129/variant-annotation.parquet'
     in_biofeature_map = 'gs://genetics-portal-data/lut/biofeature_lut_190328.json'
-    out_parquet = 'gs://genetics-portal-sumstats-b38/unfiltered/molecular_trait/GTEX_V7.parquet'
+    out_parquet = 'gs://genetics-portal-sumstats-b38/unfiltered/molecular_trait/GTEX_v7.parquet'
     tissues = [
         'Adipose_Subcutaneous',
         'Adipose_Visceral_Omentum',
