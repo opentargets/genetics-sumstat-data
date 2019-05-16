@@ -3,6 +3,20 @@ Process summary stats for Open Target Genetics
 
 Workflows for processing summary statistics file for Open Targets Genetics.
 
+Unfiltered (full) data:
+- GWAS: `gs://genetics-portal-sumstats-b38/unfiltered/gwas`
+- Molecular trait: `gs://genetics-portal-sumstats-b38/unfiltered/molecular_trait`
+
+Filtered to p < 0.05:
+- GWAS: `gs://genetics-portal-sumstats-b38/filtered/pvalue_0.05/gwas`
+- Molecular trait: `gs://genetics-portal-sumstats-b38/filtered/pvalue_0.05/molecular_trait`
+
+Filtered to keep regions within 2Mb of a "significant" association:
+- GWAS: `gs://genetics-portal-sumstats-b38/filtered/significant_window_2mb/gwas`
+- Molecular trait: `gs://genetics-portal-sumstats-b38/filtered/significant_window_2mb/molecular_trait`
+
+All datasets are in Apache Parquet format. These can be read in python using Spark or Pandas via pyarrow or fastparquet.
+
 ### Requirements when adding new datasets
 - Alleles should be harmonised so that ref and alt alleles are on the forward strand and the orientation matches the Ensembl VCF: https://github.com/opentargets/sumstat_harmoniser
 - Alt allele should always be the effect allele
@@ -15,23 +29,36 @@ Workflows for processing summary statistics file for Open Targets Genetics.
   * OR 95% CI = exp(log_OR ± 1.96 * log_ORse)
   * Citation: https://data.broadinstitute.org/alkesgroup/BOLT-LMM/#x1-5200010.2
   ```
-- Chromosome must be one of `[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 'X', 'Y', 'MT']`
-- Rows should be filtered to only contain variants with sufficiently high number of minor allele counts (minorAC) to be confident in the association estimate. minorAC = 25. Steps:
-  ```
-  * maf_threshold = minorAC / (2 * n)
-  * where n       = total sample size, for quantitive traits
-                  = min(n_cases, n_controls), for case-control traits
-  * filter all rows to remove where MAF < maf_threshold
-  ```
+- Chromosome must be one of `['1', '2', '3', '4', '5', '6', '7', '8', '9', 1'0', 1'1', 1'2', 1'3', 1'4', 1'5', 1'6', 1'7', 1'8', 1'9', 2'0', 2'1', 2'2', 'X', 'Y', 'MT']`
+- Rows should be filtered to only contain variants with sufficiently high number of minor allele counts. As of May 2019, we are using MAC>=10 for GWAS studies and MAC>=5 for molecular traits.
 - If pval == 0, set to minimum float64
-- NaN and null should be represented as empty string ""
-  - TODO future versions should use 'NA' instead of empty field
-- TODO add INFO score filter ?
-- TODO If MAF is not reported by study, should it be estimated from a reference?
-- TODO maf should be changed to eaf
 
+**Important note**. The fine-mapping and coloc pipelines currently use Dask to read the parquet files in python. We should continue to do this until [pyarrow has implemented row group filtering (predicate pushdown)](https://issues.apache.org/jira/browse/ARROW-1796), expected v0.14.0. In the mean time, all parquet files written in Spark should have the following option enabled: `pyspark.sql.SparkSession.builder.config("parquet.enable.summary-metadata", "true").getOrCreate()`
 
-### Columns new
+### Columns
+
+- `type`: The study type. GWAS studies must be `gwas`. Molecular trait studies can take other values, e.g. `eqtl`, `pqtl`.
+- `study_id`: A unique identifier for the study, should match the root parquet dataset name.
+- `phenotype_id`: Null for type == gwas. ID for the measured phenotype for molecular traits. E.g. Illumina probe, or Ensembl gene/transcript ID.
+- `bio_feature`: Null for type == gwas. An ID for the tissue measured in the molecular QTL. Ideally, this should be from an ontology such as CLO or UBERON.
+- `gene_id`: Null for type == gwas. Ensembl gene ID otherwise.
+- `chrom`: Chromosome of the variant.
+- `pos`: Position of the variant in GRCh38 build.
+- `ref`: Reference allele.
+- `alt`: Alternative allele. All effects should be with respect to the alt allele.
+- `beta`: The effect size wrt to `alt`. LogOR for binary traits.
+- `se`: The standard error for `beta`. LogORse for binary traits.
+- `pval`: Association p-value
+- `n_total`: The total number of samples including cases and controls
+- `n_cases`: Null for quantitative traits. The number of cases.
+- `eaf`: The effect (`alt`) allele frequency. This could be estimated from a reference panel if not known.
+- `mac`: The minor allele count in all samples.
+- `mac_cases`: The minor allele count in cases.
+- `num_tests`: The number of variants tested for each gene in the molecular QTL analysis.
+- `info`: The imputation quality information.
+- `is_cc`: Whether the study is case-control or not.
+
+#### Schema
 ```
 message spark_schema {
   required binary type (UTF8);
@@ -55,102 +82,4 @@ message spark_schema {
   optional double info;
   optional boolean is_cc;
 }
-
-* chrom (str): chromosome [not null]
-* pos_b37 (pos): position [not null]
-* ref_al (str): reference allele (non-effect allele) [not null]
-* alt_al (str): alt allele (effect allele) [not null]
-* beta (float): beta for quantitiative study, log_OR for case-control [not null]
-* se (float): standard error of beta for quantitiative study, se of log_OR for case-control [not null]
-* pval (float): p-value. If pval == 0, set to minimum float64 [not null]
-* n_samples_variant_level (int): total sample size (variant level) [nullable]
-* n_samples_study_level (int):   total sample size (study level) [not null if n_samples_variant_level is null]
-* n_cases_variant_level (int): number of cases (variant level) [nullable]
-* n_cases_study_level (int):   number of cases (study level) [not null if n_cases_variant_level is null]
-* eaf (float): effect allele frequency [nullable]
-* maf (float): minor allele frequency [nullable]
-* info (float): imputation quality [nullable]
-* is_cc (bool): 'True' if case-control, 'False' if quantitative study [not null]
-```
-
-### Columns old
-```
-* variant_id_b37 (str): 'chr_pos_ref_alt' for GRCh37
-* chrom (str): chromosome [not null]
-* pos_b37 (pos): position in GRCh37 [not null]
-* ref_al (str): reference allele (non-effect allele) [not null]
-* alt_al (str): alt allele (effect allele) [not null]
-* beta (float): beta for quantitiative study, log_OR for case-control [not null]
-* se (float): standard error of beta for quantitiative study, se of log_OR for case-control [not null]
-* pval (float): p-value. If pval == 0, set to minimum float64 [not null]
-* n_samples_variant_level (int): total sample size (variant level) [nullable]
-* n_samples_study_level (int):   total sample size (study level) [not null if n_samples_variant_level is null]
-* n_cases_variant_level (int): number of cases (variant level) [nullable]
-* n_cases_study_level (int):   number of cases (study level) [not null if n_cases_variant_level is null]
-* eaf (float): effect allele frequency [nullable]
-* maf (float): minor allele frequency [nullable]
-* info (float): imputation quality [nullable]
-* is_cc (bool): 'True' if case-control, 'False' if quantitative study [not null]
-```
-
-### Proposed summary stat folder structure
-
-https://docs.google.com/document/d/18splDAKSlboKCQdAcLogexE_Zd3odv6qlTSPoBUI4aQ/edit
-
-```
-gwas
-  genome_wide
-    study_id
-      trait_code
-        {chromosome}-{study_id}-{trait_id}.tsv.gz
-  targeted
-    immunochip
-      study_id
-        trait_code
-          {chromosome}-{study_id}-{trait_id}.tsv.gz
-    metabochip
-      ...
-    ...
-
-molecular_qtl
-  eqtl
-    study_id
-      tissue/cell_id # E.g. uberon or cell ontology ID
-        biomarker_id # E.g. ensembl ID
-          {chromosome}-{study_id}-{tissue_id}-{biomarker_id}.tsv.gz
-        ...
-  pqtl
-    study_id
-      tissue/cell_id # E.g. uberon or cell ontology ID
-        biomarker_id # E.g. uniprot ID
-          {chromosome}-{study_id}-{tissue_id}-{biomarker_id}.tsv.gz
-        ...
-  metabolites
-    study_id
-      tissue/cell_id # E.g. uberon or cell ontology ID
-        biomarker_id # E.g. chebi ID
-          {chromosome}-{study_id}-{tissue_id}-{biomarker_id}.tsv.gz
-        ...
-  cell_counts # E.g. Astle et al blood cell indicies
-    study_id
-      tissue/cell_id # E.g. uberon or cell ontology ID
-        biomarker_id  # E.g. uberon or cell ontology ID
-          {chromosome}-{study_id}-{tissue_id}-{biomarker_id}.tsv.gz
-        ...
-
-sequencing
-  exome
-    study_id
-      trait_code
-        variant_level
-          {chromosome}-{study_id}-{trait_id}.tsv.gz
-        gene_level
-          {chromosome}-{study_id}-{trait_id}.tsv.gz
-  wgs
-    study_id
-      trait_code
-        variant_level
-          {chromosome}-{study_id}-{trait_id}.tsv.gz
-        gene_level
-          {chromosome}-{study_id}-{trait_id}.tsv.gz
 ```
