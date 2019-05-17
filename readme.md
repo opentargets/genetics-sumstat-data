@@ -29,7 +29,7 @@ All datasets are in Apache Parquet format. These can be read in python using Spa
   * OR 95% CI = exp(log_OR ± 1.96 * log_ORse)
   * Citation: https://data.broadinstitute.org/alkesgroup/BOLT-LMM/#x1-5200010.2
   ```
-- Chromosome must be one of `['1', '2', '3', '4', '5', '6', '7', '8', '9', 1'0', 1'1', 1'2', 1'3', 1'4', 1'5', 1'6', 1'7', 1'8', 1'9', 2'0', 2'1', 2'2', 'X', 'Y', 'MT']`
+- Chromosome must be one of `['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', 'X', 'Y', 'MT']`
 - Rows should be filtered to only contain variants with sufficiently high number of minor allele counts. As of May 2019, we are using MAC>=10 for GWAS studies and MAC>=5 for molecular traits.
 - If pval == 0, set to minimum float64
 
