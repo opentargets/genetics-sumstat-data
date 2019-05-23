@@ -83,7 +83,6 @@ def main():
     # Repartition
     df = (
         df.repartitionByRange('chrom', 'pos')
-        .orderBy('pos')
     )
 
     # Save
