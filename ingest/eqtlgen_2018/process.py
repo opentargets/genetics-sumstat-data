@@ -216,7 +216,6 @@ def main():
     # Repartition and sort
     df = (
         df.repartitionByRange('chrom', 'pos')
-        .orderBy('chrom', 'pos', 'ref', 'alt')
     )
 
     # Write output

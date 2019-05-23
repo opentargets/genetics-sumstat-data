@@ -107,7 +107,6 @@ def main():
     # Repartition and sort
     merged = (
         merged.repartitionByRange('chrom', 'pos')
-              .orderBy('chrom', 'pos', 'ref', 'alt')
     )
 
     # Write output

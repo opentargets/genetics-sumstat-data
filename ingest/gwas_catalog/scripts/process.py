@@ -196,7 +196,6 @@ def main():
     # Repartition
     data = (
         data.repartitionByRange('chrom', 'pos')
-            .orderBy('chrom', 'pos', 'ref', 'alt')
     )
 
     # Write output
