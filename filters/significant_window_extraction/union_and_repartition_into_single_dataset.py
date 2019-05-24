@@ -84,6 +84,7 @@ def main():
     # Repartition
     df = (
         df.repartitionByRange(n_parts, 'chrom', 'pos')
+        .sortWithinPartitions('chrom', 'pos')
     )
 
     # Save

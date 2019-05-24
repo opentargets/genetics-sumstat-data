@@ -69,6 +69,7 @@ def main():
     # Repartition
     merged = (
         merged.repartitionByRange('chrom', 'pos')
+        .sortWithinPartitions('chrom', 'pos')
     )
 
     # Write result

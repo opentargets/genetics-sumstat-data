@@ -191,6 +191,7 @@ def main():
     # Repartition
     data = (
         data.repartitionByRange('chrom', 'pos')
+        .sortWithinPartitions('chrom', 'pos')
     )
 
     # Write output
@@ -249,7 +250,10 @@ def load_sumstats(inf):
         df = df.filter(~col('low_confidence_variant'))
 
     # Repartition
-    df = df.repartitionByRange('chrom', 'pos')
+    df = (
+        df.repartitionByRange('chrom', 'pos')
+        .sortWithinPartitions('chrom', 'pos')
+    )
 
     return df
 

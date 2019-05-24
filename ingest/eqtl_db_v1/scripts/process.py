@@ -107,6 +107,7 @@ def main():
     # Repartition and sort
     merged = (
         merged.repartitionByRange('chrom', 'pos')
+        .sortWithinPartitions('chrom', 'pos')
     )
 
     # Write output
@@ -207,7 +208,10 @@ def load_variant_info(pattern):
     df = df.withColumn('biofeature_str', get_biofeature_udf(input_file_name()))
 
     # Repartition
-    df = df.repartitionByRange('chrom', 'pos')
+    df = (
+        df.repartitionByRange('chrom', 'pos')
+        .sortWithinPartitions('chrom', 'pos')
+    )
 
     return df
 
@@ -283,7 +287,10 @@ def load_nominal_data(pattern):
     )
 
     # Repartition
-    df = df.repartitionByRange('chrom', 'pos')
+    df = (
+        df.repartitionByRange('chrom', 'pos')
+        .sortWithinPartitions('chrom', 'pos')
+    )
 
     return df
 

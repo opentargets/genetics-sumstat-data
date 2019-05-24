@@ -45,7 +45,7 @@ def main():
     # # Repartition
     # df = (
     #     df.repartitionByRange('chrom', 'pos')
-    #     .orderBy('chrom', 'pos')
+    #     .sortWithinPartitions('chrom', 'pos')
     # )
 
     # Save

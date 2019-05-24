@@ -68,7 +68,11 @@ def main():
     # df.show(3)
 
     # Repartition
-    df = df.repartitionByRange('chr', 'pos').sort('pos')
+    df = (
+        df.repartitionByRange('chr', 'pos')
+        .sortWithinPartitions('chr', 'pos')
+    )
+    
     print('Num partitions: ', df.rdd.getNumPartitions())
     # df.explain(True)
 

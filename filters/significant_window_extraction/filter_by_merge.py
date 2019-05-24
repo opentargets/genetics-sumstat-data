@@ -91,6 +91,7 @@ def filter_significant_windows(in_pq, out_pq, data_type, window, pval):
     # Repartition
     merged = (
         merged.repartitionByRange('chrom', 'pos')
+        .sortWithinPartitions('chrom', 'pos')
     )
 
     # Write output

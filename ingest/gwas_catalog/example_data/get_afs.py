@@ -43,6 +43,7 @@ def main():
                      'af')
             .filter(col('chrom_b37') == "10")
             .repartitionByRange('chrom_b38', 'pos_b38')
+            .sortWithinPartitions('chrom_b38', 'pos_b38')
             .write.parquet(outf)
     )
 
