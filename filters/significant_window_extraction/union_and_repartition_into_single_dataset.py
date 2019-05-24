@@ -32,6 +32,7 @@ def main():
     in_gwas_pattern = 'gs://genetics-portal-sumstats-b38/filtered/significant_window_2mb/gwas/*.parquet'
     in_mol_path = 'gs://genetics-portal-sumstats-b38/filtered/significant_window_2mb/molecular_trait'
     outf = 'gs://genetics-portal-sumstats-b38/filtered/significant_window_2mb/union'
+    n_parts = 800
     molecular_trait_list = [
         'ALASOO_2018.parquet',
         'Blueprint.parquet',
@@ -82,7 +83,7 @@ def main():
     
     # Repartition
     df = (
-        df.repartitionByRange('chrom', 'pos')
+        df.repartitionByRange(n_parts, 'chrom', 'pos')
     )
 
     # Save
