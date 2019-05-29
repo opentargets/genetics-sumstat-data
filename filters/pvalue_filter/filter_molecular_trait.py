@@ -73,10 +73,9 @@ def main():
     # Save
     (
         df
-        .write.json(
+        .write.parquet(
             outf,
-            mode='overwrite',
-            # compression='gzip'
+            mode='overwrite'
         )
     )
     
