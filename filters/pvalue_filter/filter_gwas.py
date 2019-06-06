@@ -25,7 +25,7 @@ def main():
  
     # Args (server)
     in_pattern = 'gs://genetics-portal-sumstats-b38/unfiltered/gwas/*.parquet'
-    outf = 'gs://genetics-portal-sumstats-b38/filtered/pvalue_0.05/gwas'
+    outf = 'gs://genetics-portal-sumstats-b38/filtered/pvalue_0.05/gwas/190606'
     pval_threshold = 0.05
 
     # Make spark session
@@ -41,6 +41,12 @@ def main():
 
     # Filter
     df = df.filter(col('pval') <= pval_threshold)
+
+    # Rename type to type_id, and cast info to float
+    df = (
+        df.withColumnRenamed('type', 'type_id')
+          .withColumn('info', col('info').cast(DoubleType()))
+    )
     
     # # Repartition
     # df = (

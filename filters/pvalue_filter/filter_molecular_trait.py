@@ -41,7 +41,7 @@ def main():
         'VAN_DE_BUNT_2015.parquet',
         'eQTLGen.parquet'
     ]
-    outf = 'gs://genetics-portal-sumstats-b38/filtered/pvalue_0.05/molecular_trait'
+    outf = 'gs://genetics-portal-sumstats-b38/filtered/pvalue_0.05/molecular_trait/190606'
     pval_threshold = 0.05
 
     # Make spark session
@@ -63,6 +63,12 @@ def main():
 
     # Filter
     df = df.filter(col('pval') <= pval_threshold)
+
+    # Rename type to type_id, and cast info to float
+    df = (
+        df.withColumnRenamed('type', 'type_id')
+          .withColumn('info', col('info').cast(DoubleType()))
+    )
     
     # # Repartition
     # df = (
@@ -73,7 +79,9 @@ def main():
     # Save
     (
         df
-        .write.parquet(
+        .write
+        # .paritionBy('study_id')
+        .parquet(
             outf,
             mode='overwrite'
         )
