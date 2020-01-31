@@ -176,7 +176,8 @@ def main():
         )
 
         # Add biofeature code and sample size
-        biofeature_mapper = udf(lambda key: biofeature_map[key])
+        biofeature_map_bc = spark.sparkContext.broadcast(biofeature_map)
+        biofeature_mapper = udf(lambda key: biofeature_map_bc.value[key])
         sumstats = (
             sumstats
             .withColumn('bio_feature_str', get_biofeature_udf(input_file_name()))
