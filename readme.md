@@ -35,6 +35,8 @@ All datasets are in Apache Parquet format. These can be read in python using Spa
 
 **Important note**. The fine-mapping and coloc pipelines currently use Dask to read the parquet files in python. We should continue to do this until [pyarrow has implemented row group filtering (predicate pushdown)](https://issues.apache.org/jira/browse/ARROW-1796), expected v0.14.0. In the mean time, all parquet files written in Spark should have the following option enabled: `pyspark.sql.SparkSession.builder.config("parquet.enable.summary-metadata", "true").getOrCreate()`
 
+An update about [this here](https://issues.apache.org/jira/browse/ARROW-1796?focusedCommentId=17030696&page=com.atlassian.jira.plugin.system.issuetabpanels%3Acomment-tabpanel#comment-17030696). It seems to be safe stop using summary-metadata as soon as we get versions up to date. 
+
 ### Columns
 
 - `type`: The study type. GWAS studies must be `gwas`. Molecular trait studies can take other values, e.g. `eqtl`, `pqtl`.
