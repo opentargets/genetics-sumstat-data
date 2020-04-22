@@ -67,14 +67,14 @@ def main():
           .withColumn('se', when(to_do, (log(data.oddsr) - log(data.oddsr_lower))/perc_97th ).otherwise(data.se))
           .drop('oddsr', 'oddsr_lower')
     )
-
-    # Impute standard error if missing
-    to_do = (data.beta.isNotNull() & data.pval.isNotNull() & data.se.isNull())
-    data = (
-        data.withColumn('z_abs', abs(ppf_udf(col('pval'))))
-          .withColumn('se', when(to_do, abs(col('beta')) / col('z_abs')).otherwise(col('se')))
-          .drop('z_abs')
-    )
+    #
+    # # Impute standard error if missing
+    # to_do = (data.beta.isNotNull() & data.pval.isNotNull() & data.se.isNull())
+    # data = (
+    #     data.withColumn('z_abs', abs(ppf_udf(col('pval'))))
+    #       .withColumn('se', when(to_do, abs(col('beta')) / col('z_abs')).otherwise(col('se')))
+    #       .drop('z_abs')
+    # )
 
     # Drop NAs, eaf null is ok as this will be inferred from a reference
     data = data.dropna(subset=['chrom', 'pos', 'ref', 'alt', 'pval', 'beta', 'se'])
@@ -87,35 +87,35 @@ def main():
 
     nrows = data.count()
     if nrows < args.min_rows:
-        print('Skpping as only {0} rows in {1}'.format(nrows, args.in_sumstats))
+        print('Skipping as only {0} rows in {1}'.format(nrows, args.in_sumstats))
         return 0
 
-    #
+    # WARN! this is to process finngen pop but data already comes with full eaf
     # Fill in effect allele frequency using gnomad NFE frequency ---------------
     #
 
-    # If there are any nulls in eaf, get allele freq from reference
-    if data.filter(col('eaf').isNull()).count() > 0:
-
-        # Load gnomad allele frequencies
-        afs = (
-            spark.read.parquet(args.in_af)
-                 .select('chrom_b38', 'pos_b38', 'ref', 'alt', 'af.gnomad_nfe')
-                 .withColumnRenamed('chrom_b38', 'chrom')
-                 .withColumnRenamed('pos_b38', 'pos')
-                 .dropna()
-        )
-
-        # Join
-        data = data.join(afs, on=['chrom', 'pos', 'ref', 'alt'], how='left')
-
-        # Make fill in blanks on the EAF column using gnomad AF
-        data = (
-            data.withColumn('eaf', when(col('eaf').isNull(),
-                                        col('gnomad_nfe'))
-                                       .otherwise(col('eaf')))
-                .drop('gnomad_nfe')
-        )
+    # # If there are any nulls in eaf, get allele freq from reference
+    # if data.filter(col('eaf').isNull()).count() > 0:
+    #
+    #     # Load gnomad allele frequencies
+    #     afs = (
+    #         spark.read.parquet(args.in_af)
+    #              .select('chrom_b38', 'pos_b38', 'ref', 'alt', 'af.gnomad_nfe')
+    #              .withColumnRenamed('chrom_b38', 'chrom')
+    #              .withColumnRenamed('pos_b38', 'pos')
+    #              .dropna()
+    #     )
+    #
+    #     # Join
+    #     data = data.join(afs, on=['chrom', 'pos', 'ref', 'alt'], how='left')
+    #
+    #     # Make fill in blanks on the EAF column using gnomad AF
+    #     data = (
+    #         data.withColumn('eaf', when(col('eaf').isNull(),
+    #                                     col('gnomad_nfe'))
+    #                                    .otherwise(col('eaf')))
+    #             .drop('gnomad_nfe')
+    #     )
 
     # Drop rows without effect allele frequency
     data = data.dropna(subset=['eaf'])
@@ -216,6 +216,45 @@ def load_sumstats(inf):
                           header=True,
                           nullValue='NA') )
 
+    # Calculate OR
+    print('calculating OR and CIs...')
+    df = (
+        df.withColumn('OR', exp(col('beta')))
+          .withColumn('OR_lowerCI', exp(col('beta') - 1.96 * col('sebeta')))
+          .withColumn('OR_upperCI', exp(col('beta') + 1.96 * col('sebeta')))
+    )
+
+    # root
+    #  |-- #chrom: string (nullable = true)
+    #  |-- pos: integer (nullable = true)
+    #  |-- ref: string (nullable = true)
+    #  |-- alt: string (nullable = true)
+    #  |-- rsids: string (nullable = true)
+    #  |-- nearest_genes: string (nullable = true)
+    #  |-- pval: double (nullable = true)
+    #  |-- beta: double (nullable = true)
+    #  |-- sebeta: double (nullable = true)
+    #  |-- maf: double (nullable = true)
+    #  |-- maf_cases: double (nullable = true)
+    #  |-- maf_controls: double (nullable = true)
+    # Rename columns
+
+    print('Renaming...')
+    df = (
+        df.withColumnRenamed('rsids', 'variant_id')
+          .withColumnRenamed('pval', 'p-value')
+          .withColumnRenamed('#chrom', 'chromosome')
+          .withColumnRenamed('pos', 'base_pair_location')
+          .withColumnRenamed('OR', 'odds_ratio')
+          .withColumnRenamed('OR_lowerCI', 'ci_lower')
+          .withColumnRenamed('OR_upperCI', 'ci_upper')
+          .withColumnRenamed('beta', 'beta')
+          .withColumnRenamed('sebeta', 'standard_error')
+          .withColumnRenamed('ref', 'other_allele')
+          .withColumnRenamed('alt', 'effect_allele')
+          .withColumnRenamed('maf', 'effect_allele_frequency')
+    )
+
     # Specify new names and types
     column_d = OrderedDict([
         ('chromosome', ('chrom', StringType())),
@@ -244,10 +283,6 @@ def load_sumstats(inf):
         df = ( df.withColumn(column, col(column).cast(column_d[column][1]))
                  .withColumnRenamed(column, column_d[column][0]) )
     
-    # If "low_confidence_variant" exists, filter based on it
-    if 'low_confidence_variant' in df.columns:
-        df = df.filter(~col('low_confidence_variant'))
-
     # Repartition
     df = (
         df.repartitionByRange('chrom', 'pos')
