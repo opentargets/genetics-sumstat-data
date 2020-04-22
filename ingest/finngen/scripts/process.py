@@ -13,11 +13,14 @@ export PYTHONPATH=$SPARK_HOME/python:$SPARK_HOME/python/lib/py4j-2.4.0-src.zip:$
 '''
 
 import sys
-import os
 from time import time
+
+import pyspark
 import pyspark.sql
+import pyspark.sql.functions
+from pyspark import *
+from pyspark.sql import *
 from pyspark.sql.types import *
-from pyspark.sql import DataFrame
 from pyspark.sql.functions import *
 from collections import OrderedDict
 import scipy.stats as st
@@ -30,51 +33,46 @@ def main():
     args.min_mac = 10
     args.min_rows = 10000
 
-    print(args)
-
-    # # Test args
-    # args = ArgPlacehorder()
-    # args.min_mac = 10
-    # args.n_cases = 5000
-    # args.n_total = 10000
-    # args.study_id = 'STUDY_TEST'
-    # args.in_sumstat = 'example_data/custom.tsv'
-    # args.in_af = 'example_data/variant-annotation_af-only_chrom10.parquet'
-    # args.out_parquet = 'output/test.parquet'
-
     # Make spark session
     global spark
-    spark = (
-        pyspark.sql.SparkSession.builder
-        .config("parquet.enable.summary-metadata", "true")
-        .getOrCreate()
-    )
+
+    if args.local:
+        # {
+        #   "out_parquet": "gs://genetics-portal-sumstats-b38/unfiltered/gwas/FINNGEN_AB1_INTESTINAL_INFECTIONS.parquet",
+        #   "in_tsv": "gs://genetics-portal-analysis/finngen-v2/summary_stats/finngen_r2_AB1_INTESTINAL_INFECTIONS.gz",
+        #   "in_af": "gs://genetics-portal-data/variant-annotation/190129/variant-annotation.parquet",
+        #   "study_id": "FINNGEN_AB1_INTESTINAL_INFECTIONS",
+        #   "n_total": 96499,
+        #   "n_cases": 8247
+        # }
+        args.min_rows = 10000
+        args.min_mac = 10
+        args.n_cases = 8247
+        args.n_total = 96499
+        args.study_id = 'FINNGEN_AB1_INTESTINAL_INFECTIONS'
+        args.in_sumstats = '/home/mkarmona/src/github/opent/genetics-analysis/genetics-sumstat-data/ingest/finngen/finngen_r2_AB1_INTESTINAL_INFECTIONS.gz'
+        args.in_af = 'example_data/variant-annotation_af-only_chrom10.parquet'
+        args.out_parquet = '/home/mkarmona/src/github/opent/genetics-analysis/genetics-sumstat-data/ingest/finngen/output/test.parquet'
+
+        spark = (
+            pyspark.sql.SparkSession.builder
+                .config("parquet.enable.summary-metadata", "true")
+                .master('local[*]')
+                .getOrCreate()
+        )
+    else:
+        spark = (
+            pyspark.sql.SparkSession.builder
+                .config("parquet.enable.summary-metadata", "true")
+                .getOrCreate()
+        )
+
+    print('args: ', args)
     print('Spark version: ', spark.version)
     start_time = time()
 
     # Load data
     data = load_sumstats(args.in_sumstats)
-
-    #
-    # Fill in required missing values -----------------------------------------
-    #
-
-    # Replace beta/se with logOR/logORse if oddsr and oddsr_lower not null
-    perc_97th = 1.95996398454005423552
-    to_do = (data.oddsr.isNotNull() & data.oddsr_lower.isNotNull())
-    data = (
-        data.withColumn('beta', when(to_do, log(data.oddsr)).otherwise(data.beta))
-          .withColumn('se', when(to_do, (log(data.oddsr) - log(data.oddsr_lower))/perc_97th ).otherwise(data.se))
-          .drop('oddsr', 'oddsr_lower')
-    )
-    #
-    # # Impute standard error if missing
-    # to_do = (data.beta.isNotNull() & data.pval.isNotNull() & data.se.isNull())
-    # data = (
-    #     data.withColumn('z_abs', abs(ppf_udf(col('pval'))))
-    #       .withColumn('se', when(to_do, abs(col('beta')) / col('z_abs')).otherwise(col('se')))
-    #       .drop('z_abs')
-    # )
 
     # Drop NAs, eaf null is ok as this will be inferred from a reference
     data = data.dropna(subset=['chrom', 'pos', 'ref', 'alt', 'pval', 'beta', 'se'])
@@ -90,41 +88,12 @@ def main():
         print('Skipping as only {0} rows in {1}'.format(nrows, args.in_sumstats))
         return 0
 
-    # WARN! this is to process finngen pop but data already comes with full eaf
-    # Fill in effect allele frequency using gnomad NFE frequency ---------------
-    #
-
-    # # If there are any nulls in eaf, get allele freq from reference
-    # if data.filter(col('eaf').isNull()).count() > 0:
-    #
-    #     # Load gnomad allele frequencies
-    #     afs = (
-    #         spark.read.parquet(args.in_af)
-    #              .select('chrom_b38', 'pos_b38', 'ref', 'alt', 'af.gnomad_nfe')
-    #              .withColumnRenamed('chrom_b38', 'chrom')
-    #              .withColumnRenamed('pos_b38', 'pos')
-    #              .dropna()
-    #     )
-    #
-    #     # Join
-    #     data = data.join(afs, on=['chrom', 'pos', 'ref', 'alt'], how='left')
-    #
-    #     # Make fill in blanks on the EAF column using gnomad AF
-    #     data = (
-    #         data.withColumn('eaf', when(col('eaf').isNull(),
-    #                                     col('gnomad_nfe'))
-    #                                    .otherwise(col('eaf')))
-    #             .drop('gnomad_nfe')
-    #     )
-
     # Drop rows without effect allele frequency
     data = data.dropna(subset=['eaf'])
 
     #
     # Fill in other values and filter ------------------------------------------
     #
-
-    # args.n_cases = None
 
     # Add sample size, case numbers
     data = (
@@ -214,48 +183,23 @@ def load_sumstats(inf):
                           sep='\t',
                           inferSchema=True,
                           header=True,
+                          enforceSchema=False,
                           nullValue='NA') )
 
     # Calculate OR
-    print('calculating OR and CIs...')
+    # print('calculating OR and CIs...')
+    # .withColumn('oddsr', exp(col('beta')))
+    # .withColumn('oddsr_lower', exp(col('beta') - 1.96 * col('sebeta')))
     df = (
-        df.withColumn('OR', exp(col('beta')))
-          .withColumn('OR_lowerCI', exp(col('beta') - 1.96 * col('sebeta')))
-          .withColumn('OR_upperCI', exp(col('beta') + 1.96 * col('sebeta')))
-    )
-
-    # root
-    #  |-- #chrom: string (nullable = true)
-    #  |-- pos: integer (nullable = true)
-    #  |-- ref: string (nullable = true)
-    #  |-- alt: string (nullable = true)
-    #  |-- rsids: string (nullable = true)
-    #  |-- nearest_genes: string (nullable = true)
-    #  |-- pval: double (nullable = true)
-    #  |-- beta: double (nullable = true)
-    #  |-- sebeta: double (nullable = true)
-    #  |-- maf: double (nullable = true)
-    #  |-- maf_cases: double (nullable = true)
-    #  |-- maf_controls: double (nullable = true)
-    # Rename columns
-
-    print('Renaming...')
-    df = (
-        df.withColumnRenamed('rsids', 'variant_id')
-          .withColumnRenamed('pval', 'p-value')
-          .withColumnRenamed('#chrom', 'chromosome')
-          .withColumnRenamed('pos', 'base_pair_location')
-          .withColumnRenamed('OR', 'odds_ratio')
-          .withColumnRenamed('OR_lowerCI', 'ci_lower')
-          .withColumnRenamed('OR_upperCI', 'ci_upper')
-          .withColumnRenamed('beta', 'beta')
-          .withColumnRenamed('sebeta', 'standard_error')
-          .withColumnRenamed('ref', 'other_allele')
-          .withColumnRenamed('alt', 'effect_allele')
-          .withColumnRenamed('maf', 'effect_allele_frequency')
+        df.withColumnRenamed('#chrom', 'chrom')
+            .withColumnRenamed('sebeta', 'se')
+            .withColumnRenamed('maf', 'eaf')
+            .withColumn('info', lit(None).cast(IntegerType()))
     )
 
     # Specify new names and types
+    # ('odds_ratio', ('oddsr', DoubleType())),
+    # ('ci_lower', ('oddsr_lower', DoubleType())),
     column_d = OrderedDict([
         ('chromosome', ('chrom', StringType())),
         ('base_pair_location', ('pos', IntegerType())),
@@ -264,25 +208,14 @@ def load_sumstats(inf):
         ('p-value', ('pval', DoubleType())),
         ('beta', ('beta', DoubleType())),
         ('standard_error', ('se', DoubleType())),
-        ('odds_ratio', ('oddsr', DoubleType())),
-        ('ci_lower', ('oddsr_lower', DoubleType())),
         ('effect_allele_frequency', ('eaf', DoubleType())),
         ('info', ('info', DoubleType()))
     ])
 
-    # Add missing columns as null
-    for column in column_d.keys():
-        if column not in df.columns:
-            df = df.withColumn(column, lit(None).cast(column_d[column][1]))
-
     # Reorder columns
-    df = df.select(*list(column_d.keys()))
+    selected_columns = [v[0] for _, v in column_d.items()]
+    df = df.select(*selected_columns)
 
-    # Change type and name of all columns
-    for column in column_d.keys():
-        df = ( df.withColumn(column, col(column).cast(column_d[column][1]))
-                 .withColumnRenamed(column, column_d[column][0]) )
-    
     # Repartition
     df = (
         df.repartitionByRange('chrom', 'pos')
@@ -291,26 +224,19 @@ def load_sumstats(inf):
 
     return df
 
-def ppf(pval):
-    ''' Return inverse cumulative distribution function of the normal
-        distribution. Needed to calculate stderr.
-    '''
-    return float(st.norm.ppf(pval / 2))
-ppf_udf = udf(ppf, DoubleType())
-
 def parse_args():
     """ Load command line args """
     parser = argparse.ArgumentParser()
-    parser.add_argument('--in_sumstats', metavar="<file>", help=('Input sumstat file file'), type=str, required=True)
-    parser.add_argument('--in_af', metavar="<file>", help=('Input allele frequency parquet'), type=str, required=True)
-    parser.add_argument('--out_parquet', metavar="<file>", help=("Output file"), type=str, required=True)
-    parser.add_argument('--study_id', metavar="<str>", help=("Study ID"), type=str, required=True)
-    parser.add_argument('--n_total', metavar="<int>", help=("Total sample size"), type=int, required=True)
+    parser.add_argument('--in_sumstats', metavar="<file>", help=('Input sumstat file file'), type=str, required=False)
+    parser.add_argument('--in_af', metavar="<file>", help=('Input allele frequency parquet'), type=str, required=False)
+    parser.add_argument('--out_parquet', metavar="<file>", help=("Output file"), type=str, required=False)
+    parser.add_argument('--study_id', metavar="<str>", help=("Study ID"), type=str, required=False)
+    parser.add_argument('--n_total', metavar="<int>", help=("Total sample size"), type=int, required=False)
     parser.add_argument('--n_cases', metavar="<int>", help=("Number of cases"), type=int, required=False)
+    parser.add_argument('--local', help="run local[*]", action='store_true', required=False, default=False)
     args = parser.parse_args()
     return args
 
 if __name__ == '__main__':
 
     main()
-#
