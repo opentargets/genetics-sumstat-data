@@ -35,22 +35,25 @@ python run_all.py
 ```
 # Start large server
 gcloud beta dataproc clusters create \
-    mk-ingest-finngen \
-    --image-version=preview \
-    --metadata 'CONDA_PACKAGES=scipy' \
-    --initialization-actions gs://dataproc-initialization-actions/python/conda-install.sh \
-    --properties=spark:spark.debug.maxToStringFields=100,spark:spark.master=yarn \
-    --master-machine-type=n1-highmem-16 \
-    --master-boot-disk-size=1TB \
-    --num-master-local-ssds=0 \
-    --num-preemptible-workers=0 \
-    --worker-machine-type=n1-highmem-32 \
-    --num-workers=2 \
-    --worker-boot-disk-size=1TB \
-    --num-worker-local-ssds=1 \
-    --zone=europe-west1-d \
-    --initialization-action-timeout=20m \
-    --max-idle=10m
+            mk-ingest-finngen \
+            --image-version=preview \
+            --metadata 'CONDA_PACKAGES=scipy' \
+            --initialization-actions gs://dataproc-initialization-actions/python/conda-install.sh \
+            --properties=spark:spark.debug.maxToStringFields=100,spark:spark.master=yarn \
+            --master-machine-type=n1-highmem-16 \
+            --master-boot-disk-size=1TB \
+            --num-master-local-ssds=0 \
+            --num-secondary-workers=0 \
+            --worker-machine-type=n1-highmem-32 \
+            --num-workers=2 \
+            --worker-boot-disk-size=1TB \
+            --num-worker-local-ssds=1 \
+            --region=europe-west1 \
+            --zone=europe-west1-d \
+            --initialization-action-timeout=20m \
+            --max-idle=15m \
+            --project=open-targets-genetics
+
 
 # To monitor
 gcloud compute ssh mk-ingest-finngen-m \
@@ -63,3 +66,4 @@ gcloud compute ssh mk-ingest-finngen-m \
 ```
 
 Dataproc info: https://stackoverflow.com/questions/36506070/how-to-queue-new-jobs-when-running-spark-on-dataproc
+Dataproc page: https://cloud.google.com/dataproc/docs/concepts/accessing/cluster-web-interfaces

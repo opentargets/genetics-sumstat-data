@@ -43,6 +43,8 @@ def main():
         if run_remote == True:
             cmd = [
                 'gcloud dataproc jobs submit pyspark',
+                '--region=europe-west1',
+                '--project=open-targets-genetics',
                 '--cluster={0}'.format(cluster_name),
                 '--properties spark.submit.deployMode=cluster',
                 '--async',
