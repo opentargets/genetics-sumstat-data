@@ -194,7 +194,7 @@ def load_sumstats(inf):
         df.withColumnRenamed('#chrom', 'chrom')
             .withColumnRenamed('sebeta', 'se')
             .withColumnRenamed('maf', 'eaf')
-            .withColumn('info', lit(None).cast(IntegerType()))
+            .withColumn('info', lit(None).cast(DoubleType()))
     )
 
     # Specify new names and types
