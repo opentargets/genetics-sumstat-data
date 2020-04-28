@@ -25,7 +25,8 @@ gcloud beta dataproc clusters create \
 # Submit to cluster
 gcloud dataproc jobs submit pyspark \
     --cluster=em-sumstatfilter \
-    --project=open-targets-genetics
+    --project=open-targets-genetics \
+    --region=europe-west1
     filter_gwas.py
 
 gcloud dataproc jobs submit pyspark \
