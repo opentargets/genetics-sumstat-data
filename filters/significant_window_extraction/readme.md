@@ -36,6 +36,8 @@ gcloud beta dataproc clusters create \
     --num-workers=2 \
     --worker-boot-disk-size=1TB \
     --zone=europe-west1-d \
+    --project=open-targets-genetics \
+    --region=europe-west1 \
     --initialization-action-timeout=20m \
     --max-idle=10m
 
@@ -52,6 +54,8 @@ gcloud beta dataproc clusters create \
     --zone=europe-west1-d \
     --initialization-action-timeout=20m \
     --single-node \
+    --project=open-targets-genetics \
+    --region=europe-west1 \
     --max-idle=10m
 
 # To monitor
@@ -78,6 +82,8 @@ gcloud beta dataproc clusters create \
     --zone=europe-west1-d \
     --initialization-action-timeout=20m \
     --single-node \
+    --project=open-targets-genetics \
+    --region=europe-west1 \
     --max-idle=10m
 
 # Submit
