@@ -145,6 +145,7 @@ def create_intervals_to_keep(df, window):
         m_intervals
         .withColumn('start', m_intervals['interval'][0])
         .withColumn('end', m_intervals['interval'][1])
+        .withColumn('start', when(F.col('start') > 0, F.col('start')).otherwise(0))
         .drop('interval', 'intervals')
     )
 
