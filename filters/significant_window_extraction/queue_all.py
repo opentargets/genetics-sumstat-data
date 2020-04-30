@@ -60,6 +60,8 @@ def main():
             '--cluster={0}'.format(cluster_name),
             '--properties spark.submit.deployMode=cluster',
             '--async',
+            '--project=open-targets-genetics',
+            '--region=europe-west1',
             script,
             '--'
         ] + args
