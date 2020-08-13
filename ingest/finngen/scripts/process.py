@@ -22,6 +22,7 @@ from pyspark import *
 from pyspark.sql import *
 from pyspark.sql.types import *
 from pyspark.sql.functions import *
+import pyspark.sql.functions as F
 from collections import OrderedDict
 import scipy.stats as st
 import argparse
@@ -57,7 +58,7 @@ def main():
         spark = (
             pyspark.sql.SparkSession.builder
                 .config("parquet.enable.summary-metadata", "true")
-                .master('local[*]')
+                # .master('local[*]')
                 .getOrCreate()
         )
     else:
@@ -97,14 +98,14 @@ def main():
 
     # Add sample size, case numbers
     data = (
-        data.withColumn('n_total', lit(args.n_total).cast(IntegerType()))
-            .withColumn('n_cases', lit(args.n_cases).cast(IntegerType()))
+        data.withColumn('n_total', F.lit(args.n_total).cast(IntegerType()))
+            .withColumn('n_cases', F.lit(args.n_cases).cast(IntegerType()))
 
     )
 
     # Calculate and filter based on MAC or MAC_cases
     data = (
-        data.withColumn('maf', when(col('eaf') <= 0.5, col('eaf')).otherwise(1 - col('eaf')))
+        data.withColumn('maf', when(F.col('eaf') <= 0.5, col('eaf')).otherwise(1 - col('eaf')))
             .withColumn('mac', col('n_total') * 2 * col('maf'))
             .withColumn('mac_cases', col('n_cases') * 2 * col('maf'))
             .filter((col('mac') >= args.min_mac) & ((col('mac_cases') >= args.min_mac) | col('mac_cases').isNull()))
@@ -233,7 +234,7 @@ def parse_args():
     parser.add_argument('--study_id', metavar="<str>", help=("Study ID"), type=str, required=False)
     parser.add_argument('--n_total', metavar="<int>", help=("Total sample size"), type=int, required=False)
     parser.add_argument('--n_cases', metavar="<int>", help=("Number of cases"), type=int, required=False)
-    parser.add_argument('--local', help="run local[*]", action='store_true', required=False, default=False)
+    parser.add_argument('--local', help="run local[*]", action='store_true', required=False, default=True)
     args = parser.parse_args()
     return args
 
