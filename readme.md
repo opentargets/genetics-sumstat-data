@@ -13,7 +13,9 @@ conda env create -n <conda env name> --file environment.yaml
 source activate <conda env name>
 ```
 
-Workflows for processing summary statistics file for Open Targets Genetics.
+Simple script to check pyspark is able to work properly `test_pyspark.py`
+
+### Workflows for processing summary statistics file for Open Targets Genetics.
 
 Unfiltered (full) data:
 - GWAS: `gs://genetics-portal-sumstats-b38/unfiltered/gwas`
