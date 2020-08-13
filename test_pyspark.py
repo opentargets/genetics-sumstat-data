@@ -19,7 +19,7 @@ spark = (
 finngen_test = ( spark.read.parquet("FINNGEN_AB1**/*.parquet"))
 
 finngen_test.show()
-finngen_test.where(F.col("chrom") == 1).count()
-finngen_test.count()
+print(finngen_test.where(F.col("chrom") == 1).count())
+print(finngen_test.count())
 
 finngen_test.printSchema()
