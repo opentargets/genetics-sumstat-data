@@ -1,6 +1,18 @@
 Process summary stats for Open Target Genetics
 ==============================================
 
+### Create env to be used with these sort of repos
+
+Mixing pyspark, scipy ipython, etc packages
+
+```
+# Install dependencies into isolated environment
+conda env create -n <conda env name> --file environment.yaml
+
+# Activate environment
+source activate <conda env name>
+```
+
 Workflows for processing summary statistics file for Open Targets Genetics.
 
 Unfiltered (full) data:
