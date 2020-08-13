@@ -1,7 +1,21 @@
 Process summary stats for Open Target Genetics
 ==============================================
 
-Workflows for processing summary statistics file for Open Targets Genetics.
+### Create env to be used with these sort of repos
+
+Mixing pyspark, scipy ipython, etc packages
+
+```
+# Install dependencies into isolated environment
+conda env create -n <conda env name> --file environment.yaml
+
+# Activate environment
+source activate <conda env name>
+```
+
+Simple script to check pyspark is able to work properly `test_pyspark.py`
+
+### Workflows for processing summary statistics file for Open Targets Genetics.
 
 Unfiltered (full) data:
 - GWAS: `gs://genetics-portal-sumstats-b38/unfiltered/gwas`

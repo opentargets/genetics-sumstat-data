@@ -15,6 +15,7 @@ import sys
 import argparse
 import pandas as pd
 import pyspark.sql
+import pyspark.sql.functions as F
 from pyspark.sql.types import *
 from pyspark.sql.functions import *
 
@@ -27,8 +28,10 @@ def main():
     global spark
     spark = (
         pyspark.sql.SparkSession.builder
-        .config("parquet.enable.summary-metadata", "true")
-        .getOrCreate()
+            .master("local[*]")
+            .getOrCreate()
+        # .config("parquet.summary.metadata.level", "true")
+
     )
     print('Spark version: ', spark.version)
 
@@ -58,14 +61,14 @@ def filter_significant_windows(in_pq, out_pq, data_type, window, pval):
     # Load
     df = (
         spark.read.parquet(in_pq)
-        .withColumn('chrom', col('chrom').cast('string'))
+        .withColumn('chrom', F.col('chrom').cast('string'))
     )
 
     # Select rows that have "significant" p-values
     if data_type == 'gwas':
-        sig = df.filter(col('pval') <= pval)
+        sig = df.filter(F.col('pval') <= pval)
     elif data_type == 'moltrait':
-        sig = df.filter(col('pval') <= (0.05 / col('num_tests')))
+        sig = df.filter(F.col('pval') <= (0.05 / F.col('num_tests')))
     sig = (
         sig
         .select('study_id', 'phenotype_id', 'bio_feature', 'chrom', 'pos')
@@ -79,12 +82,12 @@ def filter_significant_windows(in_pq, out_pq, data_type, window, pval):
     merged = (
         df.alias('main').join(broadcast(intervals.alias('intervals')),
                               (
-            (col('main.study_id') == col('intervals.study_id')) &
-            (col('main.phenotype_id').eqNullSafe(col('intervals.phenotype_id'))) &
-            (col('main.bio_feature').eqNullSafe(col('intervals.bio_feature'))) &
-            (col('main.chrom') == col('intervals.chrom')) &
-            (col('main.pos') >= col('intervals.start')) &
-            (col('main.pos') <= col('intervals.end'))
+            (F.col('main.study_id') == F.col('intervals.study_id')) &
+            (F.col('main.phenotype_id').eqNullSafe(F.col('intervals.phenotype_id'))) &
+            (F.col('main.bio_feature').eqNullSafe(F.col('intervals.bio_feature'))) &
+            (F.col('main.chrom') == F.col('intervals.chrom')) &
+            (F.col('main.pos') >= F.col('intervals.start')) &
+            (F.col('main.pos') <= F.col('intervals.end'))
         ), how='leftsemi'
         ))
 
@@ -100,8 +103,7 @@ def filter_significant_windows(in_pq, out_pq, data_type, window, pval):
             merged
             .write.parquet(
                 out_pq,
-                mode='overwrite',
-                compression='snappy'
+                mode='overwrite'
             )
         )
     elif data_type == 'moltrait':
@@ -111,8 +113,7 @@ def filter_significant_windows(in_pq, out_pq, data_type, window, pval):
             .partitionBy('bio_feature', 'chrom')
             .parquet(
                 out_pq,
-                mode='overwrite',
-                compression='snappy'
+                mode='overwrite'
             )
         )
 
@@ -125,17 +126,30 @@ def create_intervals_to_keep(df, window):
     # Create interval column
     intervals = (
         df.withColumn('interval', array(
-            col('pos') - window, col('pos') + window))
+            F.col('pos') - window, F.col('pos') + window))
           .drop('pos')
     )
 
+    interval_reducer_fn = udf(lambda key: interval_reducer(key),
+                              ArrayType(ArrayType(IntegerType())))
     # Merge intervals
-    merged_intervals = (
+    m_intervals = (
         intervals
         .groupby('study_id', 'phenotype_id', 'bio_feature', 'chrom')
-        .apply(merge_intervals)
-        .withColumn('start', when(col('start') > 0, col('start')).otherwise(0))
+        .agg(F.collect_set('interval').alias('intervals'))
+        .withColumn('intervals', interval_reducer_fn('intervals'))
+        .withColumn('interval', F.explode('intervals'))
     )
+    
+    merged_intervals = (
+        m_intervals
+        .withColumn('start', m_intervals['interval'][0])
+        .withColumn('end', m_intervals['interval'][1])
+        .withColumn('start', when(F.col('start') > 0, F.col('start')).otherwise(0))
+        .drop('interval', 'intervals')
+    )
+
+    # merged_intervals.show()
 
     return merged_intervals
 
@@ -150,51 +164,20 @@ ret_schema = (
     .add('end', IntegerType())
 )
 
-@pandas_udf(ret_schema, PandasUDFType.GROUPED_MAP)
-def merge_intervals(key, pdf):
-    ''' Merge overlapping intervals
-    Params:
-        key (list of group keys)
-        pdf (pd.Df): input data
-    Returns:
-        pd.df of type ret_schema
-    '''
-    # Create list of intervals
-    intervals = (
-        pdf['interval']
-        .apply(lambda x: Interval(s=x[0], e=x[1]))
-        .tolist()
-    )
 
+def interval_reducer(nested_list_pairs):
     # Sort intervals
-    intervals = sorted(intervals, key=lambda x: x.start)
+    intervals = sorted(nested_list_pairs, key=lambda x: x[0])
 
     # Merge overlapping intervals
     result = [intervals[0]]
     for cur in intervals:
-        if cur.start > result[-1].end:
+        if cur[0] > result[-1][1]:
             result.append(cur)
-        elif result[-1].end < cur.end:
-            result[-1].end = cur.end
-    
-    # Convert back into a df
-    res_df_rows = []
-    for interval in result:
-        res_df_rows.append(
-            list(key) + [interval.start, interval.end]
-        )
-    res_df = pd.DataFrame(
-        res_df_rows,
-        columns=['study_id', 'phenotype_id', 'bio_feature', 'chrom', 'start', 'end']
-    )
+        elif result[-1][1] < cur[1]:
+            result[-1][1] = cur[1]
 
-    return res_df
-
-# Interval type
-class Interval(object):
-    def __init__(self, s=0, e=0):
-        self.start = s
-        self.end = e
+    return result
 
 def parse_args():
     ''' Load command line args.

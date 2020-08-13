@@ -25,7 +25,7 @@ def main():
  
     # Args (server)
     in_pattern = 'gs://genetics-portal-sumstats-b38/unfiltered/gwas/*.parquet'
-    outf = 'gs://genetics-portal-sumstats-b38/filtered/pvalue_0.05/gwas/190606'
+    outf = 'gs://genetics-portal-sumstats-b38/filtered/pvalue_0.05/gwas/200427'
     pval_threshold = 0.05
 
     # Make spark session

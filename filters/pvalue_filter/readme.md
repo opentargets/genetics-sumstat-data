@@ -18,12 +18,17 @@ gcloud beta dataproc clusters create \
     --zone=europe-west1-d \
     --initialization-action-timeout=20m \
     --single-node \
-    --max-idle=10m
+    --max-idle=10m \
+    --project=open-targets-genetics \
+    --region=europe-west1
 
 # Submit to cluster
 gcloud dataproc jobs submit pyspark \
     --cluster=em-sumstatfilter \
+    --project=open-targets-genetics \
+    --region=europe-west1 \
     filter_gwas.py
+
 gcloud dataproc jobs submit pyspark \
     --cluster=em-sumstatfilter \
     filter_molecular_trait.py
