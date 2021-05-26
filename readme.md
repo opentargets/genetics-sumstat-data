@@ -1,6 +1,17 @@
 Process summary stats for Open Target Genetics
 ==============================================
 
+### Set up needed software
+
+```
+sudo apt-get update
+wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+bash miniconda.sh -b -p $HOME/miniconda
+echo export PATH="$HOME/miniconda/bin:\$PATH" >> ~/.profile
+. ~/.profile
+
+```
+
 ### Create env to be used with these sort of repos
 
 Mixing pyspark, scipy ipython, etc packages
@@ -17,17 +28,17 @@ Simple script to check pyspark is able to work properly `test_pyspark.py`
 
 ### Workflows for processing summary statistics file for Open Targets Genetics.
 
-Unfiltered (full) data:
-- GWAS: `gs://genetics-portal-sumstats-b38/unfiltered/gwas`
-- Molecular trait: `gs://genetics-portal-sumstats-b38/unfiltered/molecular_trait`
+ 1. Run ingest pipeline to get unfiltered (full) data:
+  - GWAS: `gs://genetics-portal-sumstats-b38/unfiltered/gwas`
+  - Molecular trait: `gs://genetics-portal-sumstats-b38/unfiltered/molecular_trait`
 
-Filtered to p < 0.05:
-- GWAS: `gs://genetics-portal-sumstats-b38/filtered/pvalue_0.05/gwas`
-- Molecular trait: `gs://genetics-portal-sumstats-b38/filtered/pvalue_0.05/molecular_trait`
+ 2. Filter to p < 0.05:
+  - GWAS: `gs://genetics-portal-sumstats-b38/filtered/pvalue_0.05/gwas`
+  - Molecular trait: `gs://genetics-portal-sumstats-b38/filtered/pvalue_0.05/molecular_trait`
 
-Filtered to keep regions within 2Mb of a "significant" association:
-- GWAS: `gs://genetics-portal-sumstats-b38/filtered/significant_window_2mb/gwas`
-- Molecular trait: `gs://genetics-portal-sumstats-b38/filtered/significant_window_2mb/molecular_trait`
+ 3. Filter to keep regions within 2Mb of a "significant" association:
+  - GWAS: `gs://genetics-portal-sumstats-b38/filtered/significant_window_2mb/gwas`
+  - Molecular trait: `gs://genetics-portal-sumstats-b38/filtered/significant_window_2mb/molecular_trait`
 
 All datasets are in Apache Parquet format. These can be read in python using Spark or Pandas via pyarrow or fastparquet.
 

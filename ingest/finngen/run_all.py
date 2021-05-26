@@ -16,7 +16,7 @@ def main():
     in_manifest = 'configs/finngen.manifest.json'
     script = 'scripts/process.py'
     run_remote = True
-    cluster_name = 'mk-ingest-finngen'
+    cluster_name = 'js-ingest-finngen'
 
     # Run each job in the manifest
     for c, line in enumerate(open(in_manifest, 'r')):
@@ -44,7 +44,7 @@ def main():
             cmd = [
                 'gcloud dataproc jobs submit pyspark',
                 '--region=europe-west1',
-                '--project=open-targets-genetics',
+                '--project=open-targets-genetics-dev',
                 '--cluster={0}'.format(cluster_name),
                 '--properties spark.submit.deployMode=cluster',
                 '--async',
@@ -62,7 +62,7 @@ def main():
         print(' '.join(cmd))
         sp.call(' '.join(cmd), shell=True)
         print('Complete\n')
-        time.sleep(0.5)
+        time.sleep(0.25)
 
     return 0
 

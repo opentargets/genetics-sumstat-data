@@ -11,6 +11,7 @@ export SPARK_HOME=/Users/em21/software/spark-2.4.0-bin-hadoop2.7
 export PYTHONPATH=$SPARK_HOME/python:$SPARK_HOME/python/lib/py4j-2.4.0-src.zip:$PYTHONPATH
 '''
 
+import os
 import sys
 import argparse
 import pandas as pd
@@ -28,9 +29,9 @@ def main():
     global spark
     spark = (
         pyspark.sql.SparkSession.builder
-            .master("local[*]")
+            .config("parquet.summary.metadata.level", "true")
             .getOrCreate()
-        # .config("parquet.summary.metadata.level", "true")
+        #    .master("local[*]")
 
     )
     print('Spark version: ', spark.version)
@@ -78,6 +79,10 @@ def filter_significant_windows(in_pq, out_pq, data_type, window, pval):
     # are merged to increase efficiency of join below
     intervals = create_intervals_to_keep(sig, window=window)
 
+    # Save intervals to a file with the same basename as the sumstats
+    out_intervals = os.path.splitext(out_pq)[0] + '.intervals.tsv'
+    intervals.repartition(1).write.csv(out_intervals, sep='\t', emptyValue='', mode='overwrite', header=True)
+    
     # Join main table to intervals to keep with semi left join
     merged = (
         df.alias('main').join(broadcast(intervals.alias('intervals')),

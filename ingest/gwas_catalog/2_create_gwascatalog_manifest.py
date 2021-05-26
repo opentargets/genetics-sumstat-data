@@ -12,6 +12,7 @@ import os
 import pandas as pd
 import json
 import subprocess as sp
+import re
 
 def main():
 
@@ -26,7 +27,7 @@ def main():
     # gsutil ls "gs://genetics-portal-sumstats-b38/unfiltered/gwas/*/_SUCCESS" > configs/gwascatalog_inputs/gcs_completed_paths.txt
     # Use `in_completed_path_list = None` if first run
     in_completed_path_list = 'configs/gwascatalog_inputs/gcs_completed_paths.txt'
-
+    
     # Input variant index on GCS
     gs_gnomad_path = 'gs://genetics-portal-data/variant-annotation/190129/variant-annotation.parquet'
 
@@ -34,7 +35,9 @@ def main():
     out_manifest = 'configs/gwascatalog.manifest.json'
 
     # Output directory for sumstats on GCS
-    out_gs_path = 'gs://genetics-portal-sumstats-b38/unfiltered/gwas/'
+    #out_gs_path = 'gs://genetics-portal-sumstats-b38/unfiltered/gwas/'
+    out_gs_path = 'gs://genetics-portal-dev-sumstats/unfiltered/gwas/'
+    out_log_path = 'gs://genetics-portal-dev-sumstats/logs/unfiltered/ingest/gwas_catalog/'
 
     #
     # Load --------------------------------------------------------------------
@@ -55,7 +58,6 @@ def main():
     assert (nulls['n_cases'] != nulls['n_quant']).all(), 'Rows have n_quant and ( n_cases or n_controls)'
     assert (~metadata['study_id'].duplicated(keep=False)).all(), 'There are duplicate study IDs in input'
 
-
     # Calculate n_total
     metadata['n_total'] = metadata.loc[:, ['n_cases', 'n_controls', 'n_quant']].sum(axis=1)
     
@@ -68,21 +70,27 @@ def main():
         with open(in_completed_path_list, 'r') as in_h:
             for line in in_h:
                 path = os.path.dirname(line.rstrip())
-                completed.add(path)
+                study = parse_study_from_path(path)
+                completed.add(study)
 
     #
     # Create manifest ---------------------------------------------------------
     #
-
+    num_to_do = 0
+    num_completed = 0
     with open(out_manifest, 'w') as out_h:
         for in_record in metadata.sample(frac=1).to_dict(orient='records'):
             out_record = {}
 
             # Create output path and check if it already exists
             out_record['out_parquet'] = out_gs_path + in_record['study_id'] + '.parquet'
-            if out_record['out_parquet'] in completed:
+            #if out_record['out_parquet'] in completed:
+            #    num_completed = num_completed + 1
+            #    continue
+            if in_record['study_id'] in completed:
+                num_completed = num_completed + 1
                 continue
-
+            
             # Add fields
             out_record['in_tsv'] = in_record['gcs_path']
             out_record['in_af'] = gs_gnomad_path
@@ -92,11 +100,23 @@ def main():
                 out_record['n_cases'] = int(in_record['n_cases'])
             except ValueError:
                 out_record['n_cases'] = None
+            out_record['log'] = out_log_path + in_record['study_id'] + ".log"
 
             # Write
             out_h.write(json.dumps(out_record) + '\n')
+            num_to_do = num_to_do + 1
+    print('{} studies written to manifest ({} already completed)'.format(num_to_do, num_completed))
 
     return 0
+
+def parse_study_from_path(path):
+    ''' Returns the GWAS Catalog study ID
+    '''
+    #print(path)
+    m = re.search(r'/\w+.parquet', path)[0]
+    stid = re.split(r'/|\.', m)[1]
+    #assert stid.startswith('GCST')
+    return stid
 
 if __name__ == '__main__':
 

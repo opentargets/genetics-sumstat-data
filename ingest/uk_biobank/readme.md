@@ -1,7 +1,7 @@
 Ingest GWAS Catalog sumstats
 ============================
 
-Spark workflow to read, clean and transfrom summary stats from UK Biobank.
+Spark workflow to read, clean and transform summary stats from UK Biobank.
 
 #### Usage
 
@@ -21,7 +21,7 @@ python create_ukb_manifest.py
 # Submit jobs to cluster
 python run_all.py
 
-# Check that its working as expected, then increase cluster number of workers
+# Check that it's working as expected, then increase cluster number of workers
 
 
 # Check outputs and any errors

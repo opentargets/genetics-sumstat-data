@@ -1,9 +1,12 @@
 channels:
   - bioconda
-  - defaults
+  - conda-forge
 dependencies:
   - python=3
+  - pandas>=0.24
   - htslib
+  - jq
   - ipython
   - pyspark
   - scipy
+  - lftp

@@ -30,8 +30,9 @@ def main():
 
     # Args
     in_gwas_pattern = 'gs://genetics-portal-sumstats-b38/filtered/significant_window_2mb/gwas/*.parquet'
+    in_gwas_pattern2 = 'gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/gwas/*.parquet'
     in_mol_path = 'gs://genetics-portal-sumstats-b38/filtered/significant_window_2mb/molecular_trait'
-    outf = 'gs://genetics-portal-sumstats-b38/filtered/significant_window_2mb/union'
+    outf = 'gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/union'
     n_parts = 800
     molecular_trait_list = [
         'ALASOO_2018.parquet',
@@ -73,11 +74,13 @@ def main():
     # Load
     gwas_df = spark.read.parquet(in_gwas_pattern)
 
+    gwas_df2 = spark.read.parquet(in_gwas_pattern2)
+
     #
     # Take union --------------------------------------------------------------
     #
 
-    df = gwas_df.unionByName(
+    df = gwas_df.unionByName(gwas_df2).unionByName(
         mol_df.drop('num_tests')
     )
     

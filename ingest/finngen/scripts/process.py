@@ -27,6 +27,8 @@ from collections import OrderedDict
 import scipy.stats as st
 import argparse
 
+num_partitions = 50
+
 def main():
 
     # Parse args
@@ -51,9 +53,11 @@ def main():
         args.n_cases = 8247
         args.n_total = 96499
         args.study_id = 'FINNGEN_AB1_INTESTINAL_INFECTIONS'
-        args.in_sumstats = '/home/mkarmona/src/github/opent/genetics-analysis/genetics-sumstat-data/ingest/finngen/finngen_r2_AB1_INTESTINAL_INFECTIONS.gz'
         args.in_af = 'example_data/variant-annotation_af-only_chrom10.parquet'
-        args.out_parquet = '/home/mkarmona/src/github/opent/genetics-analysis/genetics-sumstat-data/ingest/finngen/output/test.parquet'
+        args.in_sumstats = '/Users/jeremys/work/otgenetics/genetics-sumstat-data/ingest/finngen/example_data/finngen_R4_AB1_INTESTINAL_INFECTIONS.gz'
+        args.out_parquet = '/Users/jeremys/work/otgenetics/genetics-sumstat-data/ingest/finngen/output/test.parquet'
+        #args.in_sumstats = '/home/mkarmona/src/github/opent/genetics-analysis/genetics-sumstat-data/ingest/finngen/finngen_r2_AB1_INTESTINAL_INFECTIONS.gz'
+        #args.out_parquet = '/home/mkarmona/src/github/opent/genetics-analysis/genetics-sumstat-data/ingest/finngen/output/test.parquet'
 
         spark = (
             pyspark.sql.SparkSession.builder
@@ -75,8 +79,8 @@ def main():
     # Load data
     data = load_sumstats(args.in_sumstats)
 
-    # Drop NAs, eaf null is ok as this will be inferred from a reference
-    data = data.dropna(subset=['chrom', 'pos', 'ref', 'alt', 'pval', 'beta', 'se'])
+    # Drop NAs
+    data = data.dropna(subset=['chrom', 'pos', 'ref', 'alt', 'pval', 'beta', 'se', 'eaf'])
 
     #
     # Stop if there are no few rows --------------------------------------------
@@ -88,9 +92,6 @@ def main():
     if nrows < args.min_rows:
         print('Skipping as only {0} rows in {1}'.format(nrows, args.in_sumstats))
         return 0
-
-    # Drop rows without effect allele frequency
-    data = data.dropna(subset=['eaf'])
 
     #
     # Fill in other values and filter ------------------------------------------
@@ -158,11 +159,12 @@ def main():
     ]
     data = data.select(col_order)
 
-    # Repartition
-    data = (
-        data.repartitionByRange('chrom', 'pos')
-        .sortWithinPartitions('chrom', 'pos')
-    )
+    # Repartition - but I don't think we need to since we repartitioned
+    # in load_sumstats.
+    #data = (
+    #    data.repartitionByRange('chrom', 'pos')
+    #    .sortWithinPartitions('chrom', 'pos')
+    #)
 
     # Write output
     (
@@ -177,7 +179,7 @@ def main():
     return 0
 
 def load_sumstats(inf):
-    ''' Load a harmonised GWAS Catalog file
+    ''' Load a tsv sumstats file
     '''
     # Read
     df = ( spark.read.csv(inf,
@@ -219,7 +221,7 @@ def load_sumstats(inf):
 
     # Repartition
     df = (
-        df.repartitionByRange('chrom', 'pos')
+        df.repartitionByRange(num_partitions, 'chrom', 'pos')
         .sortWithinPartitions('chrom', 'pos')
     )
 
@@ -234,7 +236,7 @@ def parse_args():
     parser.add_argument('--study_id', metavar="<str>", help=("Study ID"), type=str, required=False)
     parser.add_argument('--n_total', metavar="<int>", help=("Total sample size"), type=int, required=False)
     parser.add_argument('--n_cases', metavar="<int>", help=("Number of cases"), type=int, required=False)
-    parser.add_argument('--local', help="run local[*]", action='store_true', required=False, default=True)
+    parser.add_argument('--local', help="run local[*]", action='store_true', required=False, default=False)
     args = parser.parse_args()
     return args
 

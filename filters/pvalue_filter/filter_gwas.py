@@ -15,19 +15,24 @@ import sys
 import pyspark.sql
 from pyspark.sql.types import *
 from pyspark.sql.functions import *
+from datetime import date
 
 def main():
-
-    # # Args (local)
-    # in_pattern = 'example_data/gwas/*.parquet'
-    # outf = 'output/gwas_uncompressed'
-    # pval_threshold = 0.05
- 
-    # Args (server)
-    in_pattern = 'gs://genetics-portal-sumstats-b38/unfiltered/gwas/*.parquet'
-    outf = 'gs://genetics-portal-sumstats-b38/filtered/pvalue_0.05/gwas/200427'
+    in_completed = None
     pval_threshold = 0.05
-
+    local = False
+    
+    if local:
+        # # Args (local)
+        in_pattern = 'example_data/gwas/*.parquet'
+        outf = 'output/gwas_uncompressed'
+    else:
+        # Args (server)
+        in_completed = 'gs://genetics-portal-sumstats-b38/filtered/pvalue_0.05/gwas/190612' # Sumstats already filtered
+        in_pattern = 'gs://genetics-portal-dev-sumstats/unfiltered/gwas/*.parquet' # Newly ingested sumstats
+        outf = 'gs://genetics-portal-dev-sumstats/filtered/pvalue_0.05/gwas/{version}'.format(
+            version=date.today().strftime("%y%m%d"))
+    
     # Make spark session
     global spark
     spark = (
@@ -35,25 +40,31 @@ def main():
         .getOrCreate()
     )
     print('Spark version: ', spark.version)
-
+    
     # Load
     df = spark.read.parquet(in_pattern)
-
+    
     # Filter
     df = df.filter(col('pval') <= pval_threshold)
-
+    
     # Rename type to type_id, and cast info to float
     df = (
         df.withColumnRenamed('type', 'type_id')
           .withColumn('info', col('info').cast(DoubleType()))
     )
     
+    if in_completed is not None:
+        # Read already filtered data
+        df_completed = spark.read.parquet(in_completed)
+        
+        df = df_completed.unionAll(df) 
+    
     # # Repartition
     # df = (
     #     df.repartitionByRange('chrom', 'pos')
     #     .sortWithinPartitions('chrom', 'pos')
     # )
-
+    
     # Save
     (
         df

@@ -8,8 +8,8 @@
 '''
 # Set SPARK_HOME and PYTHONPATH to use 2.4.0
 export PYSPARK_SUBMIT_ARGS="--driver-memory 8g pyspark-shell"
-export SPARK_HOME=/Users/em21/software/spark-2.4.0-bin-hadoop2.7
-export PYTHONPATH=$SPARK_HOME/python:$SPARK_HOME/python/lib/py4j-2.4.0-src.zip:$PYTHONPATH
+export SPARK_HOME=/home/js29/software/spark-2.4.6-bin-hadoop2.7
+export PYTHONPATH=$SPARK_HOME/python:$SPARK_HOME/python/lib/py4j-0.10.7-src.zip:$PYTHONPATH
 '''
 
 import sys
@@ -22,26 +22,27 @@ from pyspark.sql.functions import *
 from collections import OrderedDict
 import scipy.stats as st
 import argparse
+import logging
 
 
 def main():
 
     # Parse args
     args = parse_args()
+
+    # Test args
+    # args = argparse.Namespace(min_mac= 'mydata',
+    #                           n_cases = 5000,
+    #                           n_total = 10000,
+    #                           study_id = 'STUDY_TEST',
+    #                           in_sumstats = 'example_data/sumstats/26192919-GCST003044-EFO_0000384.h.tsv.gz',
+    #                           in_af = 'example_data/variant-annotation_190129_variant-annotation_af-only_chrom10.parquet*',
+    #                           out_parquet = 'output/test.parquet',
+    #                           )
+    
     args.min_mac = 10
     args.min_rows = 10000
-
     print(args)
-
-    # # Test args
-    # args = ArgPlacehorder()
-    # args.min_mac = 10
-    # args.n_cases = 5000
-    # args.n_total = 10000
-    # args.study_id = 'STUDY_TEST'
-    # args.in_sumstat = 'example_data/custom.tsv'
-    # args.in_af = 'example_data/variant-annotation_af-only_chrom10.parquet'
-    # args.out_parquet = 'output/test.parquet'
 
     # Make spark session
     global spark
@@ -53,8 +54,16 @@ def main():
     print('Spark version: ', spark.version)
     start_time = time()
 
+    logger = None
+    if args.log is not None:
+        logger = make_logger(args.log)
+        logger.info('Started ingest pipeline for {0}'.format(args.in_sumstats))
+
     # Load data
     data = load_sumstats(args.in_sumstats)
+    nrows = data.count()
+    if logger:
+        logger.info('{0} rows in dataset, {1} partitions'.format(nrows, data.rdd.getNumPartitions()))
 
     #
     # Fill in required missing values -----------------------------------------
@@ -83,15 +92,19 @@ def main():
         subset=['chrom', 'pos', 'ref', 'alt', 'pval', 'beta', 'se'])
 
     #
-    # Stop if there are no few rows --------------------------------------------
+    # Stop if there are too few rows --------------------------------------------
     #
 
     data = data.persist()
 
-    nrows = data.count()
+    nrows_new = data.count()
+    if logger:
+        logger.info('{0} rows after filtering on p, beta, se ({1} removed)'.format(nrows_new, nrows - nrows_new))
+    nrows = nrows_new
+
     if nrows < args.min_rows:
-        print('Skpping as only {0} rows in {1}'.format(
-            nrows, args.in_sumstats))
+        if logger:
+            logger.info('Skpping as only {0} rows is fewer than minimum of {1}'.format(nrows, args.min_rows))
         return 0
 
     #
@@ -100,7 +113,6 @@ def main():
 
     # If there are any nulls in eaf, get allele freq from reference
     if data.filter(col('eaf').isNull()).count() > 0:
-
         # Load gnomad allele frequencies
         afs = (
             spark.read.parquet(args.in_af)
@@ -123,6 +135,10 @@ def main():
 
     # Drop rows without effect allele frequency
     data = data.dropna(subset=['eaf'])
+    nrows_new = data.count()
+    if logger:
+        logger.info('{0} rows with allele frequency info ({1} removed)'.format(nrows_new, nrows - nrows_new))
+    nrows = nrows_new
 
     #
     # Fill in other values and filter ------------------------------------------
@@ -146,6 +162,10 @@ def main():
         .filter((col('mac') >= args.min_mac) & ((col('mac_cases') >= args.min_mac) | col('mac_cases').isNull()))
         .drop('maf')
     )
+    nrows_new = data.count()
+    if logger:
+        logger.info('{0} rows after filtering on MAC'.format(nrows_new, nrows - nrows_new))
+    nrows = nrows_new
 
     # If pval == 0.0, set to minimum float
     data = (
@@ -251,15 +271,15 @@ def load_sumstats(inf):
         df = (df.withColumn(column, col(column).cast(column_d[column][1]))
               .withColumnRenamed(column, column_d[column][0]))
 
-    # If "low_confidence_variant" exists, filter based on it
-    if 'low_confidence_variant' in df.columns:
-        df = df.filter(~col('low_confidence_variant'))
-
     # Repartition
     df = (
         df.repartitionByRange('chrom', 'pos')
         .sortWithinPartitions('chrom', 'pos')
     )
+
+    # If "low_confidence_variant" exists, filter based on it
+    if 'low_confidence_variant' in df.columns:
+        df = df.filter(~col('low_confidence_variant'))
 
     return df
 
@@ -289,8 +309,35 @@ def parse_args():
                         help=("Total sample size"), type=int, required=True)
     parser.add_argument('--n_cases', metavar="<int>",
                         help=("Number of cases"), type=int, required=False)
+    parser.add_argument('--log', metavar="<file>",
+                        help=("Output: log file"), type=str, required=False)
     args = parser.parse_args()
     return args
+
+
+def make_logger(log_file):
+    ''' Creates a logging handle.
+    '''
+    # Basic setup
+    logging.basicConfig(
+        level=logging.INFO,
+        datefmt='%Y-%m-%d %H:%M:%S',
+        stream=None)
+    # Create formatter
+    logFormatter = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
+    rootLogger = logging.getLogger(__name__)
+    # Add file logging
+    fileHandler = logging.FileHandler(log_file, mode='w')
+    fileHandler.setFormatter(logFormatter)
+    rootLogger.addHandler(fileHandler)
+    # Add stdout logging
+    consoleHandler = logging.StreamHandler()
+    consoleHandler.setFormatter(logFormatter)
+    rootLogger.addHandler(consoleHandler)
+     # Prevent logging from propagating to the root logger
+    rootLogger.propagate = 0
+
+    return rootLogger
 
 
 if __name__ == '__main__':

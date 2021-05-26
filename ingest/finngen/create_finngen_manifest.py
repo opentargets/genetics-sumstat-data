@@ -19,13 +19,13 @@ def main():
     # Args --------------------------------------------------------------------
     #
 
-    study_prefix = 'FINNGEN_'
-    # Manifest files from Finngen r2
-    in_finngen = 'configs/inputs/r2_finngen.json'
+    study_prefix = 'FINNGEN_R5_'
+    # Manifest files from Finngen release
+    in_finngen = 'configs/inputs/r5_finngen.json'
     in_gs_path_list = 'configs/inputs/gcs_input_paths_finngen.txt'
 
     # List of completed datasets on GCS
-    # gsutil ls "gs://genetics-portal-sumstats-b38/unfiltered/gwas/*/_SUCCESS" > configs/ukb_inputs/gcs_completed_paths.txt
+    # gsutil ls "gs://genetics-portal-sumstats-b38/unfiltered/gwas/*/_SUCCESS" > configs/inputs/gcs_completed_paths.txt
     # Use `in_completed_path_list = None` if first run
     in_completed_path_list = 'configs/inputs/gcs_completed_paths.txt'
 
@@ -36,7 +36,7 @@ def main():
     out_manifest = 'configs/finngen.manifest.json'
 
     # Output directory for sumstats on GCS
-    out_gs_path = 'gs://genetics-portal-sumstats-b38/unfiltered/gwas/'
+    out_gs_path = 'gs://genetics-portal-dev-sumstats/unfiltered/gwas/'
 
     keep_columns = [
         'code',
@@ -63,7 +63,7 @@ def main():
     finngen['n_total'] = finngen['n_cases'] + finngen['n_controls']
 
     gcs = pd.read_csv(in_gs_path_list, sep='\t', header=None, names=['in_path'])
-    gcs['code'] = gcs['in_path'].apply(parse_code, prefix=study_prefix, splitBy='finngen_r2_')
+    gcs['code'] = gcs['in_path'].apply(parse_code, prefix=study_prefix, splitBy='finngen_R5_')
 
     merged = pd.merge(gcs, finngen, on='code')
     # merged.to_csv('merged.tsv', sep='\t', index=None)

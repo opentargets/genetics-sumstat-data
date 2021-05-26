@@ -16,6 +16,7 @@ def main():
 
     # Args
     gcs_input_paths = 'configs/gwascatalog_inputs/gcs_input_paths.txt'
+    #gcs_input_paths = 'configs/gwascatalog_inputs/local_input_paths.txt'
     in_study_info = 'configs/gwascatalog_inputs/gwascat_study_table.tsv'
     metadata = 'configs/gwascatalog_outputs/gwascat_metadata_original.tsv'
     # metadata_curation = metadata.replace('_original', '_curation')

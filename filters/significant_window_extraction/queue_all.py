@@ -15,7 +15,7 @@ def main():
     in_paths = 'gcs_input_paths.txt'
     completed_paths = 'gcs_completed_paths.txt'
     script = 'filter_by_merge.py'
-    cluster_name = 'em-sumstatfilter'
+    cluster_name = 'js-sumstatfilter'
     window_to_extract = 2e6
     gwas_p_threshold = 5e-8
 
@@ -60,7 +60,7 @@ def main():
             '--cluster={0}'.format(cluster_name),
             '--properties spark.submit.deployMode=cluster',
             '--async',
-            '--project=open-targets-genetics',
+            '--project=open-targets-genetics-dev',
             '--region=europe-west1',
             script,
             '--'
@@ -86,6 +86,8 @@ def get_datatype(s):
     '''
     path_type = os.path.basename(os.path.dirname(s))
     if path_type == 'gwas':
+        data_type = 'gwas'
+    elif path_type == 'gwas_new':
         data_type = 'gwas'
     elif path_type == 'molecular_trait':
         data_type = 'moltrait'
