@@ -43,21 +43,22 @@ def main():
     
     # Load
     df = spark.read.parquet(in_pattern)
+    if "phenotype_id" in df.columns:
+        df = df.drop("phenotype_id", "bio_feature", "gene_id")
     
     # Filter
     df = df.filter(col('pval') <= pval_threshold)
+    
+    if in_completed is not None:
+        # Read already filtered data
+        df_completed = spark.read.parquet(in_completed)
+        df = df_completed.unionByName(df) 
     
     # Rename type to type_id, and cast info to float
     df = (
         df.withColumnRenamed('type', 'type_id')
           .withColumn('info', col('info').cast(DoubleType()))
     )
-    
-    if in_completed is not None:
-        # Read already filtered data
-        df_completed = spark.read.parquet(in_completed)
-        
-        df = df_completed.unionAll(df) 
     
     # # Repartition
     # df = (
