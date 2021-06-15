@@ -9,7 +9,7 @@ Instructions:
 ```bash
 # Single-node
 PROJECT="open-targets-genetics-dev"
-CLUSTER_NAME="em-sumstatfilter"
+CLUSTER_NAME="js-sumstatfilter"
 
 gcloud beta dataproc clusters create \
     $CLUSTER_NAME \
@@ -21,7 +21,7 @@ gcloud beta dataproc clusters create \
     --zone=europe-west1-d \
     --initialization-action-timeout=20m \
     --single-node \
-    --max-idle=10m \
+    --max-idle=20m \
     --project=$PROJECT \
     --region=europe-west1
 
@@ -45,5 +45,5 @@ gcloud compute ssh ${CLUSTER_NAME}-m \
 
 "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
   --proxy-server="socks5://localhost:1080" \
-  --user-data-dir="/tmp/${CLUSTER_NAME}-m" http://em-sumstatfilter-m:8088
+  --user-data-dir="/tmp/${CLUSTER_NAME}-m" http://${CLUSTER_NAME}-m:8088
 ```
