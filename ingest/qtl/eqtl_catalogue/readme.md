@@ -48,7 +48,7 @@ gcloud beta dataproc clusters create \
     --master-machine-type=n2-highmem-8 \
     --master-boot-disk-size=1TB \
     --num-master-local-ssds=0 \
-    --num-preemptible-workers=0 \
+    --num-secondary-workers=0 \
     --worker-machine-type=n2-highmem-8 \
     --num-workers=10 \
     --worker-boot-disk-size=1TB \
