@@ -1,0 +1,5 @@
+# Some of these need to be formatted in python to replace {} with study ID
+in_nominal: 'gs://genetics-portal-dev-raw/eqtl_catalogue/210702/sumstats_raw/{}'
+in_gene_meta: 'gs://genetics-portal-dev-raw/eqtl_catalogue/210702/*_phenotype_metadata.tsv.gz'
+in_biofeatures_map: 'gs://genetics-portal-data/lut/biofeature_lut_190920.w_composites.json'
+out_parquet: 'gs://genetics-portal-dev-sumstats/unfiltered/molecular_trait/{}_{}_{}.parquet'
