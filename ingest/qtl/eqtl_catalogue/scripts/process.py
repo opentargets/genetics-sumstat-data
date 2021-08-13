@@ -50,7 +50,6 @@ def main():
     start_time = time()
 
     # Load data and variant table
-    data = load_nominal_data(args.in_nominal)
     data = (
         load_nominal_data(args.in_nominal)
             .withColumn('n_total', (col('an') / 2).cast('int'))
