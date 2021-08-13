@@ -28,7 +28,11 @@ def main():
             record = {}
             
             # Add fields
-            record['study_id'] = row['study'].upper()
+            #record['study_id'] = row['study'].upper()
+            study_id = row['study']
+            if study_id == 'GTEx':
+                study_id = 'GTEx-eQTL'
+            record['study_id'] = study_id
             record['qtl_group'] = row['qtl_group'].upper()
             record['quant_method'] = row['quant_method'].upper()
             
