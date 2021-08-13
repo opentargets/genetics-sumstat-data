@@ -1,0 +1,4 @@
+variant_index: 'gs://genetics-portal-data/variant-annotation/190129/variant-annotation.parquet'
+# Some of these need to be formatted in python to replace {} with study ID
+out_parquet: 'gs://genetics-portal-dev-sumstats/unfiltered/molecular_trait/{}_{}.parquet'
+out_log: 'gs://genetics-portal-dev-logs/ingest/molecular_trait/{}_{}.txt'
