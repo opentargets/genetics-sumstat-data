@@ -8,7 +8,6 @@ Spark workflow to read, clean and transfrom summary stats from eQTL DB.
 ```
 # Obtain summary stats
 1_download_sumstats.sh
-# Split into e.g. 100 chunks or unzip
 
 # Create manifest file
 python 2_make_manifest.py
