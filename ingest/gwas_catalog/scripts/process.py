@@ -97,6 +97,11 @@ def main():
         if persist: data = data.persist() # When missing, time is: 64s
 
         # Drop NAs, eaf null is ok as this will be inferred from a reference
+        # Sometimes this will drop all SNPs if the sumstats don't have beta/SE
+        # If Z is available then we could potentially infer beta and SE using
+        # Z and the p value, as in the second answer here:
+        # https://www.biostars.org/p/319584/
+        # Referencing this paper supplement: https://www.nature.com/articles/ng.3538
         data = data.dropna(
             subset=['chrom', 'pos', 'ref', 'alt', 'pval', 'beta', 'se'])
         nrows_new = data.count()
