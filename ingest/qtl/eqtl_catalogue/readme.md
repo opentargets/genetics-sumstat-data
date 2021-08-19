@@ -7,8 +7,7 @@ Spark workflow to read, clean and transfrom summary stats from eQTL DB.
 
 ```
 # Obtain summary stats
-
-# Split into e.g. 300 chunks or unzip
+1_download_sumstats.sh
 
 # Create manifest file
 python 2_make_manifest.py
@@ -29,9 +28,9 @@ gcloud beta dataproc clusters create \
     --image-version=preview \
     --metadata 'CONDA_PACKAGES=scipy pandas' \
     --initialization-actions gs://dataproc-initialization-actions/python/conda-install.sh \
-    --properties=spark:spark.debug.maxToStringFields=100,spark:spark.executor.cores=63,spark:spark.executor.instances=1 \
-    --master-machine-type=n1-standard-64 \
-    --master-boot-disk-size=1TB \
+    --properties=spark:spark.debug.maxToStringFields=100,spark:spark.executor.cores=62,spark:spark.executor.instances=1 \
+    --master-machine-type=n2-highmem-64 \
+    --master-boot-disk-size=2TB \
     --num-master-local-ssds=1 \
     --zone=europe-west1-d \
     --initialization-action-timeout=20m \
@@ -45,12 +44,12 @@ gcloud beta dataproc clusters create \
     --metadata 'CONDA_PACKAGES=scipy pandas' \
     --initialization-actions gs://dataproc-initialization-actions/python/conda-install.sh \
     --properties=spark:spark.debug.maxToStringFields=100,spark:spark.master=yarn \
-    --master-machine-type=n1-highmem-8 \
+    --master-machine-type=n2-highmem-8 \
     --master-boot-disk-size=1TB \
     --num-master-local-ssds=0 \
-    --num-preemptible-workers=0 \
-    --worker-machine-type=n1-standard-16 \
-    --num-workers=2 \
+    --num-secondary-workers=0 \
+    --worker-machine-type=n2-highmem-8 \
+    --num-workers=10 \
     --worker-boot-disk-size=1TB \
     --num-worker-local-ssds=1 \
     --zone=europe-west1-d \
@@ -59,10 +58,10 @@ gcloud beta dataproc clusters create \
 
 # To monitor
 gcloud compute ssh em-cluster-eqtldb-ingest-m \
-  --project=open-targets-genetics \
+  --project=open-targets-genetics-dev \
   --zone=europe-west1-d -- -D 1080 -N
 
-"EdApplications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
   --proxy-server="socks5://localhost:1080" \
   --user-data-dir="/tmp/em-cluster-eqtldb-ingest-m" http://em-cluster-eqtldb-ingest-m:8088
 ```

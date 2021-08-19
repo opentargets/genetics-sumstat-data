@@ -20,11 +20,9 @@ wget ftp://ftp.ebi.ac.uk/pub/databases/gwas/summary_statistics/deLangeKM_2806790
 # Heel bone mineral density
 wget ftp://ftp.ebi.ac.uk/pub/databases/gwas/summary_statistics/KempJP_28869591_GCST006288/harmonised/28869591-GCST006288-EFO_0009270.h.tsv.gz
 
-# Split
-gzip_split=/Users/em21/Projects/gzip_split/gzip_split.py
-for inf in *.h.tsv.gz; do
-  echo pypy3 $gzip_split --inf $inf --chunks 300 --header all --delete
-done | parallel -j 3
+(zcat 28067908-GCST004132-EFO_0000384.h.tsv.gz | head -n 1; zcat 28067908-GCST004132-EFO_0000384.h.tsv.gz | awk '$3 ~ /10/') | gzip > 28067908-GCST004132-EFO_0000384.h.chr10.tsv.gz
+
+gsutil cp 28067908-GCST004132-EFO_0000384.h.tsv.gz gs://genetics-portal-raw/gwas_catalog/harmonised_test/
 
 cd ..
 

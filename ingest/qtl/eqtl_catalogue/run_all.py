@@ -13,29 +13,30 @@ import time
 def main():
 
     # Args
-    in_manifest = 'configs/gwascatalog.manifest.json'
+    in_manifest ='configs/manifest.json'
+    in_manifest ='configs/manifest.1.json'
     script = 'scripts/process.py'
     run_remote = True
-    cluster_name = 'js-ingest-gwascatalog'
+    cluster_name = 'em-cluster-eqtldb-ingest'
 
     # Run each job in the manifest
     for c, line in enumerate(open(in_manifest, 'r')):
+
+        # if c == 0:
+        #     continue
 
         manifest = json.loads(line)
 
         # Build script args
         args = [
-            '--in_sumstats', manifest['in_tsv'],
-            '--in_af', manifest['in_af'],
-            '--out_parquet', manifest['out_parquet'],
             '--study_id', manifest['study_id'],
-            '--n_total', str(manifest['n_total']),
-            '--log', manifest['log']
+            '--qtl_group', manifest['qtl_group'],
+            '--quant_method', manifest['quant_method'],
+            '--in_nominal', manifest['in_nominal'],
+            '--in_gene_meta', manifest['in_gene_meta'],
+            '--in_biofeatures_map', manifest['in_biofeatures_map'],
+            '--out_parquet', manifest['out_parquet']
         ]
-        # Optional args
-        if manifest['n_cases']:
-            args.append('--n_cases')
-            args.append(str(manifest['n_cases']))
 
         # Build command
         if run_remote == True:
@@ -52,6 +53,9 @@ def main():
                 'python',
                 script
             ] + args
+
+            # Escape wildcards
+            cmd = [arg.replace('*', '\\*') for arg in cmd]
 
         # Run command
         print('Running job {0}...'.format(c + 1))

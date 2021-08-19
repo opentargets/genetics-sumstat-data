@@ -13,6 +13,7 @@ export PYTHONPATH=$SPARK_HOME/python:$SPARK_HOME/python/lib/py4j-2.4.0-src.zip:$
 
 import os
 import sys
+import math
 import argparse
 import pandas as pd
 import pyspark.sql
@@ -29,7 +30,7 @@ def main():
     global spark
     spark = (
         pyspark.sql.SparkSession.builder
-            .config("parquet.summary.metadata.level", "true")
+            .config("parquet.summary.metadata.level", "NONE")
             .getOrCreate()
         #    .master("local[*]")
 
@@ -54,7 +55,7 @@ def filter_significant_windows(in_pq, out_pq, data_type, window, pval):
     Args:
         in_pq (path): input parquet
         out_pq (path): output parquet
-        data type (str): gwas or moltrait
+        data type (str): gwas or molecular_trait
         window (int): window to extract around significant variants
         pval (float): pvalue to be considered significant
     '''
@@ -68,7 +69,7 @@ def filter_significant_windows(in_pq, out_pq, data_type, window, pval):
     # Select rows that have "significant" p-values
     if data_type == 'gwas':
         sig = df.filter(F.col('pval') <= pval)
-    elif data_type == 'moltrait':
+    elif data_type == 'molecular_trait':
         sig = df.filter(F.col('pval') <= (0.05 / F.col('num_tests')))
     sig = (
         sig
@@ -96,9 +97,15 @@ def filter_significant_windows(in_pq, out_pq, data_type, window, pval):
         ), how='leftsemi'
         ))
 
+    # Determine useful number of partitions. 10 intervals per partition seems good.
+    num_partitions = math.ceil(intervals.count() / 10)
+    if num_partitions <= 0:
+        print("No intervals to keep. Exiting!")
+        return 0
+    
     # Repartition
     merged = (
-        merged.repartitionByRange('chrom', 'pos')
+        merged.repartitionByRange(num_partitions, 'chrom', 'pos')
         .sortWithinPartitions('chrom', 'pos')
     )
 
@@ -111,7 +118,7 @@ def filter_significant_windows(in_pq, out_pq, data_type, window, pval):
                 mode='overwrite'
             )
         )
-    elif data_type == 'moltrait':
+    elif data_type == 'molecular_trait':
         (
             merged
             .write
@@ -203,7 +210,7 @@ def parse_args():
                    metavar="<float>", type=float, required=True)
     p.add_argument('--data_type',
                    help=("Whether dataset is of GWAS or molecular trait type"),
-                   metavar="<str>", type=str, choices=['gwas', 'moltrait'], required=True)
+                   metavar="<str>", type=str, choices=['gwas', 'molecular_trait'], required=True)
 
     args = p.parse_args()
 

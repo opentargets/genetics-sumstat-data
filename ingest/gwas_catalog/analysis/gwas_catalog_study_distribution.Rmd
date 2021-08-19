@@ -1,0 +1,54 @@
+
+---
+title: "GWAS catalog sumstat / study distribution"
+author: "Jeremy Schwartzentruber"
+date: "24/2/2021"
+output: html_document
+---
+
+
+```{r setup, echo=FALSE, message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = F)
+library(tidyverse)
+theme_set(theme_bw())
+```
+
+```{r, message=FALSE}
+gwascat_dir = "/Users/jeremys/work/otgenetics/genetics-sumstat-data/ingest/gwas_catalog/configs/gwascatalog_inputs"
+gwascat_file = file.path(gwascat_dir, "gwascat_study_table.tsv")
+
+gwas_df = readr::read_tsv(gwascat_file)
+
+gwas_count = gwas_df %>%
+    group_by(PUBMEDID, `FIRST AUTHOR`) %>%
+    summarise(num_gwas = n()) %>%
+    arrange(desc(num_gwas))
+
+gwas_df = gwas_df %>%
+    left_join(gwas_count %>% select(PUBMEDID, num_gwas), by="PUBMEDID") %>%
+    arrange(desc(num_gwas), desc(`ASSOCIATION COUNT`))
+
+readr::write_tsv(gwas_df, file.path(gwascat_dir, "gwascat_study_table.with_totals.tsv"))
+```
+
+## Study distribution
+
+```{r}
+p = ggplot(gwas_count %>% filter(num_gwas > 20),
+       aes(x=fct_reorder(`FIRST AUTHOR`, desc(num_gwas)), y=num_gwas)) +
+    geom_bar(stat="identity") +
+    theme(axis.text.x = element_text(angle = 35, hjust = 1)) +
+    xlab("Study (first author)") +
+    ylab("Number of sumstats") +
+    ggtitle("Number of GWAS sumstats per study")
+p
+
+p + scale_y_log10() + ggtitle("Number of GWAS sumstats per study (log scale")
+
+ggplot(gwas_count, aes(x=1:nrow(gwas_count), y=cumsum(num_gwas))) +
+    geom_line() +
+    xlab("Publication index") +
+    ylab("Total GWAS sumstat") +
+    ggtitle("Cumulative number of GWAS sumstats")
+```
+

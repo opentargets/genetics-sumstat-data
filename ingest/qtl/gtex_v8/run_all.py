@@ -14,26 +14,23 @@ def main():
 
     # Args
     in_manifest ='configs/manifest.json'
-    script = 'scripts/process.py'
+    script = 'process.py'
     run_remote = True
-    cluster_name = 'em-cluster-eqtldb-ingest'
+    cluster_name = 'js-cluster-gtex8-ingest'
 
     # Run each job in the manifest
     for c, line in enumerate(open(in_manifest, 'r')):
-
-        # if c == 0:
-        #     continue
 
         manifest = json.loads(line)
 
         # Build script args
         args = [
             '--study_id', manifest['study_id'],
+            '--qtl_group', manifest['qtl_group'],
             '--in_nominal', manifest['in_nominal'],
-            '--in_varinfo', manifest['in_varinfo'],
-            '--in_gene_meta', manifest['in_gene_meta'],
-            '--in_biofeatures_map', manifest['in_biofeatures_map'],
-            '--out_parquet', manifest['out_parquet']
+            '--in_varindex', manifest['in_varindex'],
+            '--out_parquet', manifest['out_parquet'],
+            '--out_log', manifest['out_log']
         ]
 
         # Build command

@@ -1,17 +1,18 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# Ed Mountjoy
-#
+# Ed Mountjoy, Jeremy Schwartzentruber
 
 import sys
 import os
 import time
+import re
 import subprocess as sp
 
 def main():
 
     # Args
+    output_dir = sys.argv[1]
     in_paths = 'gcs_input_paths.txt'
     completed_paths = 'gcs_completed_paths.txt'
     script = 'filter_by_merge.py'
@@ -19,11 +20,11 @@ def main():
     window_to_extract = 2e6
     gwas_p_threshold = 5e-8
 
-    # Load set of completed paths
-    completed = set([])
+    # Load set of completed studies
+    completed_studies = set([])
     with open(completed_paths, 'r') as in_h:
         for line in in_h:
-            completed.add(os.path.dirname(line.rstrip()))
+            completed_studies.add(os.path.basename(os.path.dirname(line.rstrip())))
 
     # Run each job in the manifest
     c = 0
@@ -34,15 +35,13 @@ def main():
 
         # Make path names
         in_path = os.path.dirname(line.rstrip())
+        study = os.path.basename(in_path)
         data_type = get_datatype(in_path)
-        out_path = in_path.replace(
-            '/unfiltered/',
-            '/filtered/significant_window_2mb/'
-        )
+        out_path = os.path.join(output_dir, data_type, study)
 
         # Skip completed
-        if out_path in completed:
-            print('Skipping {}'.format(out_path))
+        if study in completed_studies:
+            print('Skipping {}'.format(study))
             continue
 
         # Build script args
@@ -84,13 +83,11 @@ def main():
 def get_datatype(s):
     ''' Parses datatype from the input path name
     '''
-    path_type = os.path.basename(os.path.dirname(s))
-    if path_type == 'gwas':
+    path = os.path.dirname(s)
+    if re.search('molecular_trait', s):
+        data_type = 'molecular_trait'
+    if re.search('gwas', s):
         data_type = 'gwas'
-    elif path_type == 'gwas_new':
-        data_type = 'gwas'
-    elif path_type == 'molecular_trait':
-        data_type = 'moltrait'
     else:
         sys.exit('Error: could not determine data type from path name')
     return data_type
