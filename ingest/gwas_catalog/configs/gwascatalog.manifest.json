@@ -1,0 +1,1 @@
+{"out_parquet": "gs://genetics-portal-sumstats-b38/unfiltered/gwas/GCST004421.parquet", "in_tsv": "gs://genetics-portal-raw/gwas_catalog/harmonised_201013/27989323-GCST004421-EFO_0008035.h.tsv.gz", "in_af": "gs://genetics-portal-data/variant-annotation/190129/variant-annotation.parquet", "study_id": "GCST004421", "n_total": 3531, "n_cases": null}

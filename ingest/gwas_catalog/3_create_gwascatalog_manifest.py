@@ -19,9 +19,10 @@ def main():
     #
     # Args --------------------------------------------------------------------
     #
+    version_date = sys.argv[1]
 
     # Metadata
-    in_metadata = 'configs/gwascatalog_outputs/gwascat_metadata_curation.tsv'
+    in_metadata = 'configs/gwas_metadata_curated.latest.tsv'
 
     # List of completed datasets on GCS
     # gsutil ls "gs://genetics-portal-sumstats-b38/unfiltered/gwas/*/_SUCCESS" > configs/gwascatalog_inputs/gcs_completed_paths.txt
@@ -34,9 +35,12 @@ def main():
     # Path to write main manifest file
     out_manifest = 'configs/gwascatalog.manifest.json'
 
+    # Path on GCS where raw harmonised studies are stored
+    gcs_harmonised_root = f'gs://genetics-portal-dev-raw/gwas_catalog/harmonised_{version_date}/'
+
     # Output directory for sumstats on GCS
     #out_gs_path = 'gs://genetics-portal-sumstats-b38/unfiltered/gwas/'
-    out_gs_path = 'gs://genetics-portal-dev-sumstats/unfiltered/gwas/'
+    out_gs_path = f'gs://genetics-portal-dev-sumstats/unfiltered/gwas/{version_date}/'
     out_log_path = 'gs://genetics-portal-dev-sumstats/logs/unfiltered/ingest/gwas_catalog/'
 
     #
@@ -46,11 +50,10 @@ def main():
     metadata = pd.read_csv(in_metadata, sep='\t', header=0)
     
     # Restict to european only
-    print('{} studies European ({:.1f}%)'.format(
-        metadata['is_eur'].sum(), 100 * metadata['is_eur'].sum() / metadata.shape[0]))
-    print('{} studies non-European ({:.1f}%)'.format(
-        (~metadata['is_eur']).sum(), 100 * ((~metadata['is_eur']).sum()) / metadata.shape[0]))
-    metadata = metadata.loc[metadata['is_eur'], :]
+    print('{} studies to already ingested'.format(int(metadata['ingested'].sum())))
+    print('{} studies to ingest'.format(int(metadata['to_ingest'].sum())))
+    print('{} studies excluded'.format(int(len(metadata.index) - metadata['ingested'].sum() - metadata['to_ingest'].sum())))
+    metadata = metadata.loc[metadata['to_ingest'] > 0, :]
 
     # Validate input
     nulls = pd.isnull(metadata[['n_cases', 'n_controls', 'n_quant']])
@@ -63,8 +66,7 @@ def main():
     
     #
     # Load set of completed datasets that should be skipped -------------------
-    #
-
+    #   
     completed = set([])
     if in_completed_path_list:
         with open(in_completed_path_list, 'r') as in_h:
@@ -81,9 +83,10 @@ def main():
     with open(out_manifest, 'w') as out_h:
         for in_record in metadata.sample(frac=1).to_dict(orient='records'):
             out_record = {}
+            study_id = in_record['study_id']
 
             # Create output path and check if it already exists
-            out_record['out_parquet'] = out_gs_path + in_record['study_id'] + '.parquet'
+            out_record['out_parquet'] = out_gs_path + study_id + '.parquet'
             #if out_record['out_parquet'] in completed:
             #    num_completed = num_completed + 1
             #    continue
@@ -92,15 +95,16 @@ def main():
                 continue
             
             # Add fields
-            out_record['in_tsv'] = in_record['gcs_path']
+            sumstat_filename = os.path.basename(in_record['gwascat_path'])
+            out_record['in_tsv'] = gcs_harmonised_root + sumstat_filename
             out_record['in_af'] = gs_gnomad_path
-            out_record['study_id'] = in_record['study_id']
+            out_record['study_id'] = study_id
             out_record['n_total'] = int(in_record['n_total'])
             try:
                 out_record['n_cases'] = int(in_record['n_cases'])
             except ValueError:
                 out_record['n_cases'] = None
-            out_record['log'] = out_log_path + in_record['study_id'] + ".log"
+            out_record['log'] = out_log_path + study_id + ".log"
 
             # Write
             out_h.write(json.dumps(out_record) + '\n')

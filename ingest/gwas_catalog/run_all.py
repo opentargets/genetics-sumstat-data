@@ -16,7 +16,7 @@ def main():
     in_manifest = 'configs/gwascatalog.manifest.json'
     script = 'scripts/process.py'
     run_remote = True
-    cluster_name = 'em-ingest-gwascatalog'
+    cluster_name = 'js-ingest-gwascatalog'
 
     # Run each job in the manifest
     for c, line in enumerate(open(in_manifest, 'r')):
@@ -29,7 +29,8 @@ def main():
             '--in_af', manifest['in_af'],
             '--out_parquet', manifest['out_parquet'],
             '--study_id', manifest['study_id'],
-            '--n_total', str(manifest['n_total'])
+            '--n_total', str(manifest['n_total']),
+            '--log', manifest['log']
         ]
         # Optional args
         if manifest['n_cases']:
