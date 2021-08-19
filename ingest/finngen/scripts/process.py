@@ -112,6 +112,7 @@ def main():
             .filter((col('mac') >= args.min_mac) & ((col('mac_cases') >= args.min_mac) | col('mac_cases').isNull()))
             .drop('maf')
     )
+    data = data.persist()
 
     # If pval == 0.0, set to minimum float
     data = (
