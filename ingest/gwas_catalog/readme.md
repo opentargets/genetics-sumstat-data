@@ -51,8 +51,9 @@ python run_all.py
 # Check that its working as expected, then increase cluster number of workers
 
 # Check outputs and any errors
-#gsutil -m ls "gs://genetics-portal-dev-sumstats/unfiltered/gwas/*/_SUCCESS" > configs/gwascatalog_outputs/ingest_completed_paths.txt
-gsutil -m ls "gs://genetics-portal-dev-sumstats/unfiltered/gwas/210817/_SUCCESS" > configs/gwascatalog_outputs/ingest_completed_paths.txt
+#gsutil -m ls "gs://genetics-portal-dev-sumstats/unfiltered/gwas/*/*.parquet/_SUCCESS" > configs/gwascatalog_outputs/ingest_completed_paths.txt
+gsutil -m ls "gs://genetics-portal-dev-sumstats/unfiltered/gwas/210817/*.parquet/_SUCCESS" > configs/gwascatalog_outputs/ingest_completed_paths.txt
+gsutil -m ls -l "gs://genetics-portal-dev-sumstats/logs/unfiltered/ingest/gwas_catalog/*.log/*.txt" > configs/gwascatalog_outputs/ingest_completed_logs.txt
 gsutil -m ls "gs://genetics-portal-dev-sumstats/unfiltered/gwas/**/_SUCCESS" > configs/gwascatalog_inputs/gcs_completed_paths.txt
 
 ```
