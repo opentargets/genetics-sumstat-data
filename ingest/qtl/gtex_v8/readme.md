@@ -54,7 +54,7 @@ gcloud beta dataproc clusters create \
 # Or start large cluster
 gcloud beta dataproc clusters create \
     js-cluster-gtex8-ingest \
-    --image-version=2.0-ubuntu18 \
+    --image-version=1.5-ubuntu18 \
     --metadata 'CONDA_PACKAGES=scipy pandas' \
     --initialization-actions gs://dataproc-initialization-actions/python/conda-install.sh \
     --properties=dataproc:efm.spark.shuffle=primary-worker \
