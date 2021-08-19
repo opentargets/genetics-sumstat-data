@@ -49,10 +49,6 @@ def main():
     log(logger, 'Spark version: ' + spark.version)
     start_time = datetime.now()
 
-    #logStr = spark.sparkContext.parallelize(["Test string for spark"]).coalesce(1)
-    #logStr.saveAsTextFile("test_log_file.txt")
-    #logStr.saveAsTextFile("gs://genetics-portal-dev-logs/ingest/molecular_trait/test_log.txt")
-    
     # Load varindex
     varindex = (
         spark.read.parquet(args.in_varindex)
