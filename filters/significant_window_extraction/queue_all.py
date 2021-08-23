@@ -11,6 +11,8 @@ import subprocess as sp
 
 def main():
 
+    print_only = False
+
     # Args
     output_dir = sys.argv[1]
     in_paths = 'gcs_input_paths.txt'
@@ -28,8 +30,9 @@ def main():
 
     # Run each job in the manifest
     c = 0
+    jobnum = 0
     for i, line in enumerate(open(in_paths, 'r')):
-
+        
         # if i != 0:
         #     continue
 
@@ -43,7 +46,7 @@ def main():
         if study in completed_studies:
             print('Skipping {}'.format(study))
             continue
-
+        
         # Build script args
         args = [
             '--in_sumstats', in_path,
@@ -66,16 +69,13 @@ def main():
         ] + args
         
         # Run command
-        print('Running job {0}...'.format(i + 1))
+        jobnum = jobnum + 1
+        print('Running job {0}...'.format(jobnum))
         print(' '.join(cmd))
-        sp.call(' '.join(cmd), shell=True)
-        print('Complete\n')
-        time.sleep(0.5)
-
-        # # Add counter for queued
-        # c += 1
-        # if c == 3:
-        #     sys.exit()
+        if not print_only:
+            sp.call(' '.join(cmd), shell=True)
+            print('Complete\n')
+            time.sleep(0.5)
 
     return 0
 
@@ -86,10 +86,10 @@ def get_datatype(s):
     path = os.path.dirname(s)
     if re.search('molecular_trait', s):
         data_type = 'molecular_trait'
-    if re.search('gwas', s):
+    elif re.search('gwas', s):
         data_type = 'gwas'
     else:
-        sys.exit('Error: could not determine data type from path name')
+        sys.exit(f'Error: could not determine data type from path name: {s}')
     return data_type
 
 if __name__ == '__main__':
