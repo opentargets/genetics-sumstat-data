@@ -100,8 +100,10 @@ def filter_significant_windows(in_pq, out_pq, data_type, window, pval):
     # Determine useful number of partitions. 10 intervals per partition seems good.
     num_partitions = math.ceil(intervals.count() / 10)
     if num_partitions <= 0:
-        print("No intervals to keep. Exiting!")
-        return 0
+        print("No intervals to keep!")
+        # We still write a file with no data, since this prevents us from trying
+        # to re-compute significant windows for this file in the future.
+        num_partitions = 1
     
     # Repartition
     merged = (
