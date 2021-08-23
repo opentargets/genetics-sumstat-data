@@ -20,7 +20,7 @@ def main():
 
     # Load analysis config file
     with open('configs/config.yaml', 'r') as in_h:
-        config_dict = yaml.load(in_h)
+        config_dict = yaml.load(in_h, Loader=yaml.FullLoader)
     print('Config: \n' + pprint.pformat(config_dict, indent=2))
     
     with open(out_manifest, 'w') as out_h:
