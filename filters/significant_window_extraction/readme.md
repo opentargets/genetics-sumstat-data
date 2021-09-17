@@ -7,9 +7,7 @@ This will massively reduce the size of the input data for fine-mapping and coloc
 
 ```
 # Get list of all input parquet files
-# Note that we don't need significant windows for FinnGen since we don't
-# run fine-mapping ourselves.
-gsutil -m ls "gs://genetics-portal-dev-sumstats/unfiltered/gwas/*/*.parquet/_SUCCESS" | grep -v 'FINNGEN' > gcs_input_paths.txt
+gsutil -m ls "gs://genetics-portal-dev-sumstats/unfiltered/gwas/*/*.parquet/_SUCCESS" > gcs_input_paths.txt
 gsutil -m ls "gs://genetics-portal-dev-sumstats/unfiltered/molecular_trait/*.parquet/_SUCCESS" >> gcs_input_paths.txt
 
 # Get list of completed files
@@ -19,6 +17,7 @@ gsutil -m ls "gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/
 
 # Queue all, specifying output directory
 version_date=`date +%y%m%d`
+version_date=210901
 python queue_all.py "gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/${version_date}"
 
 # If there are many jobs, then increase the number of workers using the Dataproc UI
@@ -79,8 +78,8 @@ gcloud compute ssh js-sumstatfilter-m \
 gcloud dataproc clusters update js-sumstatfilter \
     --region=europe-west1 \
     --project=open-targets-genetics-dev \
-    --num-workers=8 \
-    --num-secondary-workers=8
+    --num-workers=2 \
+    --num-secondary-workers=2
 ```
 
 ### Cluster commands for union/repartitioning
@@ -90,10 +89,10 @@ gcloud dataproc clusters update js-sumstatfilter \
 gcloud beta dataproc clusters create \
     js-sumstatfilter \
     --image-version=preview \
-    --properties=spark:spark.debug.maxToStringFields=100,spark:spark.executor.cores=30,spark:spark.executor.instances=1 \
-    --master-machine-type=n1-highmem-32 \
+    --properties=spark:spark.debug.maxToStringFields=100,spark:spark.executor.cores=70,spark:spark.executor.instances=1 \
+    --master-machine-type=n2-highmem-80 \
     --master-boot-disk-size=2TB \
-    --num-master-local-ssds=1 \
+    --num-master-local-ssds=8 \
     --zone=europe-west1-d \
     --initialization-action-timeout=20m \
     --single-node \
