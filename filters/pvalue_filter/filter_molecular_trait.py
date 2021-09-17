@@ -21,28 +21,42 @@ from functools import reduce
 def main():
 
     # Args
-    in_path = 'gs://genetics-portal-sumstats-b38/unfiltered/molecular_trait'
-    study_list = [
-        'ALASOO_2018.parquet',
-        'Blueprint.parquet',
-        'CEDAR.parquet',
-        'FAIRFAX_2012.parquet',
-        'FAIRFAX_2014.parquet',
-        'GENCORD.parquet',
-        'GEUVADIS.parquet',
-        'GTEX_v7.parquet',
-        'HIPSCI.parquet',
-        'NARANBHAI_2015.parquet',
-        'NEDELEC_2016.parquet',
-        'QUACH_2016.parquet',
-        'SCHWARTZENTRUBER_2018.parquet',
-        'SUN2018.parquet',
-        'TWINSUK.parquet',
-        'VAN_DE_BUNT_2015.parquet',
-        'eQTLGen.parquet'
-    ]
-    outf = 'gs://genetics-portal-sumstats-b38/filtered/pvalue_0.05/molecular_trait/190606'
+    in_path = 'gs://genetics-portal-dev-sumstats/unfiltered/molecular_trait_partitioned'
+    outf = 'gs://genetics-portal-dev-sumstats/filtered/pvalue_0.05/molecular_trait/210917'
     pval_threshold = 0.05
+    # study_list = [
+    #     'Alasoo_2018.parquet',
+    #     'BLUEPRINT.parquet',
+    #     'BrainSeq.parquet',
+    #     'Braineac2.parquet',
+    #     'CAP.parquet',
+    #     'CEDAR.parquet',
+    #     'CommonMind.parquet',
+    #     'FUSION.parquet',
+    #     'Fairfax_2012.parquet',
+    #     'Fairfax_2014.parquet',
+    #     'GENCORD.parquet',
+    #     'GEUVADIS.parquet',
+    #     'GTEx-eQTL.parquet',
+    #     'HipSci.parquet',
+    #     'Kasela_2017.parquet',
+    #     'Lepik_2017.parquet',
+    #     'Naranbhai_2015.parquet',
+    #     'Nedelec_2016.parquet',
+    #     'Peng_2018.parquet',
+    #     'PhLiPS.parquet',
+    #     'Quach_2016.parquet',
+    #     'ROSMAP.parquet',
+    #     'SUN2018.parquet',
+    #     'Schmiedel_2018.parquet',
+    #     'Schwartzentruber_2018.parquet',
+    #     'Steinberg_2020.parquet',
+    #     'TwinsUK.parquet',
+    #     'Young_2019.parquet',
+    #     'eQTLGen.parquet',
+    #     'iPSCORE.parquet',
+    #     'van_de_Bunt_2015.parquet'
+    # ]
 
     # Make spark session
     global spark
@@ -52,14 +66,23 @@ def main():
     )
     print('Spark version: ', spark.version)
 
-    # Load list of datasets
-    dfs = []
-    for in_path in [os.path.join(in_path, study) for study in study_list]:
-        df_temp = spark.read.parquet(in_path)
-        dfs.append(df_temp)
+    # Load list of datasets, filtering as we go
+    # dfs = []
+    # for in_path in [os.path.join(in_path, study) for study in study_list]:
+    #     df_temp = (
+    #         spark.read.parquet(in_path)
+    #         .filter(col('pval') <= pval_threshold)
+    #     )
+    #     dfs.append(df_temp)
     
-    # Take union
-    df = reduce(pyspark.sql.DataFrame.unionByName, dfs)
+    # # Take union
+    # df = reduce(pyspark.sql.DataFrame.unionByName, dfs)
+
+    # Load datasets
+    df = (
+        spark.read.option("mergeSchema", "true")
+        .parquet(in_path)
+    )
 
     # Filter
     df = df.filter(col('pval') <= pval_threshold)
@@ -68,11 +91,15 @@ def main():
     df = (
         df.withColumnRenamed('type', 'type_id')
           .withColumn('info', col('info').cast(DoubleType()))
+          .drop('col_study_id')
+        # In the last release, we copied all data into molecular_trait_partitioned with
+        # an artificial partitioning column col_study_id so that all mol_trait data
+        # could be read in at once, but this isn't needed downstream.
     )
     
     # # Repartition
     # df = (
-    #     df.repartitionByRange('chrom', 'pos')
+    #     df.repartitionByRange(2000, 'chrom', 'pos')
     #     .sortWithinPartitions('chrom', 'pos')
     # )
 
