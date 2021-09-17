@@ -14,7 +14,7 @@ def main():
 
     # Args
     in_manifest ='configs/manifest.json'
-    in_manifest ='configs/manifest.1.json'
+    #in_manifest ='configs/manifest.1.json'
     script = 'scripts/process.py'
     run_remote = True
     cluster_name = 'em-cluster-eqtldb-ingest'
@@ -34,6 +34,7 @@ def main():
             '--quant_method', manifest['quant_method'],
             '--in_nominal', manifest['in_nominal'],
             '--in_gene_meta', manifest['in_gene_meta'],
+            #'--in_study_meta', manifest['in_study_meta'],
             '--in_biofeatures_map', manifest['in_biofeatures_map'],
             '--out_parquet', manifest['out_parquet']
         ]
