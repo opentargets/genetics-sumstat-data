@@ -30,7 +30,7 @@ def main():
     global spark
     spark = (
         pyspark.sql.SparkSession.builder
-            .config("parquet.summary.metadata.level", "NONE")
+            .config("parquet.summary.metadata.level", "ALL")
             .getOrCreate()
         #    .master("local[*]")
 
@@ -98,10 +98,17 @@ def filter_significant_windows(in_pq, out_pq, data_type, window, pval):
         ))
 
     # Determine useful number of partitions. 10 intervals per partition seems good.
-    num_partitions = math.ceil(intervals.count() / 10)
+    # Divide also by the number of biofeatures, since we don't want partitions to get
+    # smaller as more tissues/biofeatures are added (e.g. GTEx).
+    num_biofeatures = intervals.select('bio_feature').distinct().count()
+    num_partitions = math.ceil(intervals.count() / num_biofeatures / 10)
     if num_partitions <= 0:
-        print("No intervals to keep. Exiting!")
-        return 0
+        print('No intervals to keep!')
+        # We still write a file with no data, since this prevents us from trying
+        # to re-compute significant windows for this file in the future.
+        num_partitions = 1
+    else:
+        print(f'Saving with {num_partitions} partitions')
     
     # Repartition
     merged = (

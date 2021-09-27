@@ -28,8 +28,8 @@ def main():
         outf = 'output/gwas_uncompressed'
     else:
         # Args (server)
-        in_completed = 'gs://genetics-portal-sumstats-b38/filtered/pvalue_0.05/gwas/190612' # Sumstats already filtered
-        in_pattern = 'gs://genetics-portal-dev-sumstats/unfiltered/gwas/*.parquet' # Newly ingested sumstats
+        #in_completed = 'gs://genetics-portal-sumstats-b38/filtered/pvalue_0.05/gwas/190612' # Sumstats already filtered
+        in_pattern = 'gs://genetics-portal-dev-sumstats/unfiltered/gwas/*/*.parquet'
         outf = 'gs://genetics-portal-dev-sumstats/filtered/pvalue_0.05/gwas/{version}'.format(
             version=date.today().strftime("%y%m%d"))
     
@@ -41,8 +41,39 @@ def main():
     )
     print('Spark version: ', spark.version)
     
+    # Specify schema for GWAS studies - seems to be required to read
+    # all parquet files from different directories
+    gwas_schema = (
+        StructType()
+        .add('type', StringType(), False)
+        .add('study_id', StringType(), False)
+        .add('phenotype_id', StringType(), False)
+        .add('bio_feature', StringType(), False)
+        .add('gene_id', StringType(), False)
+        .add('chrom', StringType(), True)
+        .add('pos', IntegerType(), True)
+        .add('ref', StringType(), True)
+        .add('alt', StringType(), True)
+        .add('beta', DoubleType(), True)
+        .add('se', DoubleType(), True)
+        .add('pval', DoubleType(), True)
+        .add('n_total', IntegerType(), True)
+        .add('n_cases', IntegerType(), True)
+        .add('eaf', DoubleType(), True)
+        .add('mac', DoubleType(), True)
+        .add('mac_cases', DoubleType(), True)
+        .add('info', DoubleType(), True)
+        .add('is_cc', BooleanType(), True)
+    )
+
     # Load
-    df = spark.read.parquet(in_pattern)
+    #df = spark.read.parquet(in_pattern)
+    df = (
+        spark.read
+        .schema(gwas_schema)
+        .parquet(in_pattern)
+#        .option("mergeSchema", "true")
+    )
     if "phenotype_id" in df.columns:
         df = df.drop("phenotype_id", "bio_feature", "gene_id")
     

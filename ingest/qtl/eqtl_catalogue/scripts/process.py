@@ -16,7 +16,7 @@ import sys
 import os
 import argparse
 from time import time
-import pandas
+import pandas as pd
 import pyspark.sql
 from pyspark.sql.types import *
 from pyspark.sql import DataFrame
@@ -43,7 +43,7 @@ def main():
     global spark
     spark = (
         pyspark.sql.SparkSession.builder
-        .config("parquet.enable.summary-metadata", "true")
+        .config("parquet.summary.metadata.level", "ALL")
         .getOrCreate()
     )
     print('Spark version: ', spark.version)
@@ -62,6 +62,15 @@ def main():
     # Filter low quality variants
     data = data.filter(col('mac') >= args.min_mac)
 
+    data = data.persist()
+
+    # (eQTL catalogue may have rows that are identical except for having different rsids)
+    # Previously I tried to remove duplicates rows here in Spark, but seemed to run into
+    # problems (repeated spark job errors) when writing the merged file. Instead I now
+    # remove duplicates prior to this ingest script.
+    #data = data.dropDuplicates(subset=['phenotype_id', 'chrom', 'pos', 'ref', 'alt'])
+    #data = data.persist()
+
     # Determine the number of variants tested per gene
     num_tests = (
         data
@@ -70,8 +79,8 @@ def main():
     )
 
     # Merge num_tests back onto nominal data
-    data = data.join(num_tests, on='phenotype_id')
-          
+    data = data.join(num_tests, on=['phenotype_id'])
+    
     # In newest eQTL catalogue, gene ID is already in the nominal p values file
     # so no need to use gene metadata here
     #gene_meta = load_gene_metadata(args.in_gene_meta)
@@ -83,11 +92,11 @@ def main():
 
     # bio_feature represents the tissue/condition combination, which is the qtl_group heading
     # in eQTL catalogue
-    merged = data.withColumn('bio_feature', lit(args.qtl_group))
-
+    data = data.withColumn('bio_feature', lit(args.qtl_group))
+    
     # Additional columns to match gwas sumstat files
-    merged = (
-        merged.withColumn('study_id', lit(args.study_id))
+    data = (
+        data.withColumn('study_id', lit(args.study_id))
               .withColumn('type', lit('eqtl'))
               .withColumn('n_cases', lit(None).cast(IntegerType()))
               .withColumn('mac_cases', lit(None).cast(IntegerType()))
@@ -117,22 +126,22 @@ def main():
         'info',
         'is_cc'
     ]
-    merged = merged.select(col_order)
+    data = data.select(col_order)
 
     # Repartition and sort
-    merged = (
-        merged.repartitionByRange('chrom', 'pos')
+    data = (
+        data.repartitionByRange('chrom', 'pos')
         .sortWithinPartitions('chrom', 'pos')
     )
 
     # Write output
     (
-        merged
+        data
         .write
-        .partitionBy('chrom')
+        .partitionBy('bio_feature', 'chrom')
         .parquet(
             args.out_parquet,
-            mode='overwrite',
+            mode='append',
             compression='snappy'
         )
     )
@@ -199,14 +208,15 @@ def load_nominal_data(pattern):
         .add('molecular_trait_object_id', StringType())
         .add('gene_id', StringType())
         .add('median_tpm', DoubleType())
-        .add('rsid', StringType())
+        #.add('rsid', StringType()) # This col is removed before ingesting
     )
     df = (
         spark.read.csv(pattern,
                        sep='\t',
                        schema=import_schema,
                        enforceSchema=True, # So it will check schema against file header
-                       header=False)
+                       header=False,
+                       nullValue='NA')
     )
     df = (
         df.withColumnRenamed('molecular_trait_id', 'phenotype_id')
@@ -218,7 +228,7 @@ def load_nominal_data(pattern):
     # Remove fields we don't use:
     # 'variant', 'ma_samples', 'type', 'r2', 'molecular_trait_object_id', 'median_tpm', 'rsid'
     df = (
-        df.select(['phenotype_id', 'gene_id', 'chrom', 'pos', 'ref', 'alt', 'pval', 'beta', 'se', 'maf', 'ac', 'an'])
+        df.select(['phenotype_id', 'gene_id', 'chrom', 'pos', 'ref', 'alt', 'pval', 'beta', 'se', 'maf', 'ac', 'an', 'r2'])
     )
 
     df = (
@@ -239,6 +249,7 @@ def parse_args():
     parser.add_argument('--qtl_group', metavar="<string>", help=('QTL tissue/condition to add as bio_feature column'), type=str, required=True)
     parser.add_argument('--quant_method', metavar="<string>", help=('Quantification method - not currently used'), type=str, required=True)
     parser.add_argument('--in_nominal', metavar="<file>", help=('Input sum stats'), type=str, required=True)
+    #parser.add_argument('--in_study_meta', metavar="<file>", help=("Input study meta-data"), type=str, required=True)
     parser.add_argument('--in_gene_meta', metavar="<file>", help=("Input gene meta-data"), type=str, required=True)
     parser.add_argument('--in_biofeatures_map', metavar="<file>", help=("Input biofeature to ontology map"), type=str, required=True)
     parser.add_argument('--out_parquet', metavar="<file>", help=("Output parquet path"), type=str, required=True)

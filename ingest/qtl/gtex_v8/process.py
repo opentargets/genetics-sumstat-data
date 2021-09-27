@@ -83,6 +83,7 @@ def main():
         spark.read.parquet(args.in_nominal)
         .filter(col('ma_count') >= args.min_mac)
     )
+    sumstats = sumstats.persist()
     log(logger, '{}: Sumstat row count'.format(sumstats.count()))
 
     #
@@ -117,7 +118,7 @@ def main():
         sumstats
         .withColumn('n_total', ((col('ma_count') / col('maf')) / 2).cast('int') )
     )
-    #sumstats.show(n=3)
+    sumstats = sumstats.persist()
 
     #
     # Figure out which allele is the effect allele for each variant ------------
@@ -129,6 +130,7 @@ def main():
         on=['chrom', 'pos', 'ref', 'alt'],
         how='left'
     )
+    sumstats = sumstats.persist()
 
     # Only keep those in gnomad
     intersection = intersection.filter(
@@ -169,12 +171,14 @@ def main():
         .groupby('splicing_cluster', 'gene_id')
         .agg(min(col('pval_nominal')).alias('min_cluster_pval'))
     )
+    df = df.persist()
 
     df = df.join(
         min_cluster_pvals,
         on=['splicing_cluster', 'gene_id'],
         how='left'
     )
+    df = df.persist()
 
     # Each variant is now annotated with the min pval for its junction and for
     # its cluster. Remove all rows where the min junction pval is above the
@@ -185,12 +189,14 @@ def main():
     # for a cluster.
     df = df.filter(col('min_junction_pval') <= col('min_cluster_pval'))
     log(logger, '{}: row count after filtering for best junction'.format(df.count()))
+    df = df.persist()
 
     min_junction_pvals = (
         df
         .groupby('expr_feature', 'gene_id')
         .agg(count(col('pval_nominal')).alias('num_tests'))
     )
+    df = df.persist()
     log(logger, '{}: number of expression features (cluster junctions) retained'.format(min_junction_pvals.count()))
 
     #
@@ -245,6 +251,7 @@ def main():
     required_cols = ['type', 'study_id', 'phenotype_id', 'bio_feature', 'expr_feature',
                     'gene_id', 'chrom', 'pos', 'ref', 'alt', 'beta', 'se', 'pval']
     df = df.dropna(subset=required_cols)
+    df = df.persist()
     log(logger, '{}: final row count (after dropping NAs)'.format(df.count()))
 
     # Repartition and sort

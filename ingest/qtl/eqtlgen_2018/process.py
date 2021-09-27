@@ -175,7 +175,7 @@ def main():
         .withColumn('n_cases', lit(None).cast('int'))
         .withColumn('is_cc', lit(False))
         .withColumn('maf', when(col('eaf') > 0.5, 1 - col('eaf')).otherwise(col('eaf')))
-        .withColumn('mac', col('n_total') * 2 * col('maf'))
+        .withColumn('mac', col('n_total') * 2 * col('maf')) # TODO - if reingesting this should be converted to integer type
         .withColumn('mac_cases', lit(None).cast('int'))
         .withColumn('info', lit(None).cast('double'))
         # Filter based on mac
