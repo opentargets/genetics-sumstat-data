@@ -15,6 +15,7 @@ def main():
 
     # Args
     output_dir = sys.argv[1]
+    intervals_dir = sys.argv[2]
     in_paths = 'gcs_input_paths.txt'
     completed_paths = 'gcs_completed_paths.txt'
     script = 'filter_by_merge.py'
@@ -40,7 +41,8 @@ def main():
         in_path = os.path.dirname(line.rstrip())
         study = os.path.basename(in_path)
         data_type = get_datatype(in_path)
-        out_path = os.path.join(output_dir, data_type, study)
+        out_sumstats = os.path.join(output_dir, data_type, study)
+        out_intervals = os.path.join(intervals_dir, data_type, study) + '.intervals.tsv'
 
         # Skip completed
         if study in completed_studies:
@@ -50,7 +52,8 @@ def main():
         # Build script args
         args = [
             '--in_sumstats', in_path,
-            '--out_sumstats', out_path,
+            '--out_sumstats', out_sumstats,
+            '--out_intervals', out_intervals,
             '--window', str(int(window_to_extract)),
             '--pval', str(float(gwas_p_threshold)),
             '--data_type', data_type
