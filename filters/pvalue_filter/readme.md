@@ -1,6 +1,8 @@
 Filter summary statistics by pvalue
 ===================================
 
+Note: Currently we only apply this to the full set of sumstats each time, which is duplicating the compute with each release. Potentially we could only filter new studies, using something similar to what is described here: https://stackoverflow.com/a/68569465
+
 Instructions:
 1. Edit "Args" in `filter_gwas.py`
 2. Edit "Args" in `filter_molecular_trait.py`

@@ -41,6 +41,7 @@ def main():
     filter_significant_windows(
         in_pq=args.in_sumstats,
         out_pq=args.out_sumstats,
+        out_intervals=args.out_intervals,
         data_type=args.data_type,
         window=args.window,
         pval=args.pval
@@ -49,7 +50,7 @@ def main():
     return 0
 
 
-def filter_significant_windows(in_pq, out_pq, data_type, window, pval):
+def filter_significant_windows(in_pq, out_pq, out_intervals, data_type, window, pval):
     ''' Filters a sumstat parquet down to windows that contain a "significant"
         variant, as determined by pval
     Args:
@@ -80,9 +81,10 @@ def filter_significant_windows(in_pq, out_pq, data_type, window, pval):
     # are merged to increase efficiency of join below
     intervals = create_intervals_to_keep(sig, window=window)
 
-    # Save intervals to a file with the same basename as the sumstats
-    out_intervals = os.path.splitext(out_pq)[0] + '.intervals.tsv'
-    intervals.repartition(1).write.csv(out_intervals, sep='\t', emptyValue='', mode='overwrite', header=True)
+    # Save intervals to a file with the same basename as the sumstats, but in
+    # a different folder
+    if out_intervals:
+        intervals.repartition(1).write.csv(out_intervals, sep='\t', emptyValue='', mode='overwrite', header=True)
     
     # Join main table to intervals to keep with semi left join
     merged = (
@@ -101,6 +103,8 @@ def filter_significant_windows(in_pq, out_pq, data_type, window, pval):
     # Divide also by the number of biofeatures, since we don't want partitions to get
     # smaller as more tissues/biofeatures are added (e.g. GTEx).
     num_biofeatures = intervals.select('bio_feature').distinct().count()
+    if num_biofeatures < 1:
+        num_biofeatures = 1
     num_partitions = math.ceil(intervals.count() / num_biofeatures / 10)
     if num_partitions <= 0:
         print('No intervals to keep!')
@@ -120,7 +124,8 @@ def filter_significant_windows(in_pq, out_pq, data_type, window, pval):
     if data_type == 'gwas':
         (
             merged
-            .write.parquet(
+            .write
+            .parquet(
                 out_pq,
                 mode='overwrite'
             )
@@ -209,6 +214,9 @@ def parse_args():
     p.add_argument('--out_sumstats',
                    help=("Output: summary stats parquet file"),
                    metavar="<file>", type=str, required=True)
+    p.add_argument('--out_intervals',
+                   help=("Output: intervals file"),
+                   metavar="<file>", type=str, required=False, default=None)
     p.add_argument('--window',
                    help=("± window to filter by"),
                    metavar="<int>", type=int, required=True)

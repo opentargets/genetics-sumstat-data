@@ -7,18 +7,20 @@ This will massively reduce the size of the input data for fine-mapping and coloc
 
 ```
 # Get list of all input parquet files
-gsutil -m ls "gs://genetics-portal-dev-sumstats/unfiltered/gwas/*/*.parquet/_SUCCESS" > gcs_input_paths.txt
-gsutil -m ls "gs://genetics-portal-dev-sumstats/unfiltered/molecular_trait/*.parquet/_SUCCESS" >> gcs_input_paths.txt
+gsutil -m ls "gs://genetics-portal-dev-sumstats/unfiltered/molecular_trait/*.parquet/_SUCCESS" > gcs_input_paths.txt
+gsutil -m ls "gs://genetics-portal-dev-sumstats/unfiltered/gwas/*.parquet/_SUCCESS" >> gcs_input_paths.txt
 
 # Get list of completed files
-gsutil -m ls "gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/*/*/*.parquet/_SUCCESS" > gcs_completed_paths.txt
+gsutil -m ls "gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/molecular_trait/*.parquet/_SUCCESS" > gcs_completed_paths.txt
+gsutil -m ls "gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/gwas/*.parquet/_SUCCESS" >> gcs_completed_paths.txt
 
 # Start cluster (see below)
 
 # Queue all, specifying output directory
-version_date=`date +%y%m%d`
-version_date=210901
-python queue_all.py "gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/${version_date}"
+# (You may want to tmux first if there are thousands of GWAS to run,
+# in case it stops submitting part way and you don't know which are
+# already queued.)
+python queue_all.py "gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb" "gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb_intervals"
 
 # If there are many jobs, then increase the number of workers using the Dataproc UI
 # Ideally a 50:50 primary to secondary worker ratio:
@@ -36,9 +38,9 @@ gcloud beta dataproc clusters create \
     --initialization-actions gs://dataproc-initialization-actions/python/conda-install.sh \
     --properties=dataproc:efm.spark.shuffle=primary-worker \
     --properties=spark:spark.debug.maxToStringFields=100,spark:spark.master=yarn,yarn:yarn.scheduler.capacity.resource-calculator=org.apache.hadoop.yarn.util.resource.DominantResourceCalculator \
-    --master-machine-type=n1-standard-8 \
+    --master-machine-type=n2-standard-8 \
     --master-boot-disk-size=1TB \
-    --worker-machine-type=n1-standard-8 \
+    --worker-machine-type=n2-standard-8 \
     --num-workers=2 \
     --num-secondary-workers=0 \
     --worker-boot-disk-size=1TB \
@@ -78,13 +80,20 @@ gcloud compute ssh js-sumstatfilter-m \
 gcloud dataproc clusters update js-sumstatfilter \
     --region=europe-west1 \
     --project=open-targets-genetics-dev \
-    --num-workers=2 \
-    --num-secondary-workers=2
+    --num-workers=4 \
+    --num-secondary-workers=4
 ```
 
-### Cluster commands for union/repartitioning
+### Commands for union/repartitioning
+
+(This took 1.5 hrs on last run.)
 
 ```
+# Get list of completed significant window files
+gsutil -m ls -d "gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/molecular_trait/*.parquet" > gcs_completed_moltraits.txt
+gsutil cp gcs_completed_moltraits.txt gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/gcs_completed_moltraits.txt
+gsutil -m ls -d "gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/gwas/*.parquet" > gcs_completed_gwas.txt
+
 # Single-node (for taking union and repartitioning)
 gcloud beta dataproc clusters create \
     js-sumstatfilter \
@@ -92,7 +101,6 @@ gcloud beta dataproc clusters create \
     --properties=spark:spark.debug.maxToStringFields=100,spark:spark.executor.cores=70,spark:spark.executor.instances=1 \
     --master-machine-type=n2-highmem-80 \
     --master-boot-disk-size=2TB \
-    --num-master-local-ssds=8 \
     --zone=europe-west1-d \
     --initialization-action-timeout=20m \
     --single-node \
