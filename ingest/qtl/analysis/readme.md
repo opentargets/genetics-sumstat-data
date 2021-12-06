@@ -43,14 +43,15 @@ gcloud dataproc jobs submit pyspark \
 
 # Compare number of genes at different pval/FDR thresholds
 # calc_gene_fdr.py takes 10 min or so
-gsutil cp gs://genetics-portal-dev-analysis/js29/molecular_trait/min_pvals_per_gene.csv.gz .
+gsutil cp gs://genetics-portal-dev-analysis/js29/molecular_trait/211202/min_pvals_per_gene.csv.gz .
 python calc_gene_fdr.py --minp min_pvals_per_gene.csv.gz --out qvals_per_gene.csv.gz
 
 gsutil cp gs://genetics-portal-dev-analysis/js29/molecular_trait/min_pvals_per_gene_old_2002.csv.gz .
 python calc_gene_fdr.py --minp min_pvals_per_gene_old_2002.csv.gz --out qvals_per_gene_old.csv.gz
 
-Rscript plot_qtl_numbers.R qvals_per_gene.csv.gz new
-Rscript plot_qtl_numbers.R qvals_per_gene_old.csv.gz old
+mkdir -p output
+Rscript plot_qtl_numbers_old.R qvals_per_gene_old.csv.gz output_21.12/old
+Rscript plot_qtl_numbers.R qvals_per_gene.csv.gz output_21.12/qtl_comparison
 
 ```
 

@@ -66,7 +66,7 @@ def main():
 
     # Collect all data and write using pandas
     min_pvals.toPandas().to_csv(
-        'gs://genetics-portal-dev-analysis/js29/molecular_trait/min_pvals_per_gene.csv.gz',
+        'gs://genetics-portal-dev-analysis/js29/molecular_trait/211202/min_pvals_per_gene.csv.gz',
         index=False)
 
     # Previous code to write with Spark
