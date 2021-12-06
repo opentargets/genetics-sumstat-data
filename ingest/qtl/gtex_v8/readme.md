@@ -1,5 +1,5 @@
 Ingest GTEx v8 splice QTL sumstats
-=======================
+==================================
 
 Spark workflow to read, clean and transfrom splicing QTL summary stats from GTEx.
 
@@ -7,7 +7,7 @@ Note: We import eQTLs from eQTL catalogue, which uniformly processed GTEx as wel
 
 Each gene can have multiple splicing clusters, and each cluster has multiple splicing junctions. The p-value associations for the different junctions for a cluster are largely redundant, and one junction will be the "cleanest" i.e. have the lowest p values. So we keep only one junction per splicing cluster.
 
-#### Usage
+### Usage
 
 ```
 # Note: sumstats for GTEx are already on GCS:
@@ -34,18 +34,16 @@ gsutil -m rm -r gs://genetics-portal-dev-raw/gtex_v8/GTEx_Analysis_v8_EUR_sQTL_a
 
 
 ```
-NCORES=16
-N_EXEC=$((NCORES-1))
 # Start single-node cluster
 gcloud beta dataproc clusters create \
     js-cluster-gtex8-ingest \
     --image-version=2.0-ubuntu18 \
     --metadata 'CONDA_PACKAGES=pandas' \
     --initialization-actions gs://dataproc-initialization-actions/python/conda-install.sh \
-    --properties=spark:spark.debug.maxToStringFields=100,spark:spark.executor.cores=$N_EXEC,spark:spark.executor.instances=1 \
-    --master-machine-type=n1-highmem-$NCORES \
+    --properties=spark:spark.debug.maxToStringFields=100,spark:spark.driver.memory=25g,spark:spark.executor.memory=76g,spark:spark.executor.cores=8,spark:spark.executor.instances=6 \
+    --master-machine-type=n2-highmem-64 \
     --master-boot-disk-size=1TB \
-    --num-master-local-ssds=1 \
+    --num-master-local-ssds=0 \
     --zone=europe-west1-d \
     --initialization-action-timeout=20m \
     --single-node \

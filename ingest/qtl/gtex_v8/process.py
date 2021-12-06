@@ -42,8 +42,8 @@ def main():
     global spark
     spark = (
         pyspark.sql.SparkSession.builder
-        #.config("parquet.summary.metadata.level", "ALL")
-        .config("parquet.summary.metadata.level", "NONE")
+        .config("parquet.summary.metadata.level", "ALL")
+        #.config("parquet.summary.metadata.level", "NONE")
         .getOrCreate()
     )
     log(logger, 'Spark version: ' + spark.version)
@@ -102,15 +102,26 @@ def main():
         .drop('varsplit', 'variant_id')
     )
 
-    # Extract gene_id and expression 'feature'
     # The phenotype_id for a splicing junction is like: chr1:15038:15796:clu_50677:ENSG00000227232.5
-    # We use a regex ':(?!.*:)' to match the last : in the string, to get everything up until the gene ID.
-    # This uses a negative lookahead. See it working on regexr: https://regexr.com/63fqh
+    # We first remove the last ".N" from the gene ID, since we only use the base gene ID and we want
+    # to match this regardless of the Ensembl version.
+    # We use a regex '.(?!.*.)' to match the last . in the string, to get everything up until the gene ID version.
+    # This uses a negative lookahead. See it working on regexr: https://regexr.com/69t1b
+    sumstats = (
+        sumstats
+        .withColumn('phenotype_id', split('phenotype_id', '\.(?!.*\.)').getItem(0))
+    )
+
+    # Extract gene_id and splicing cluster
     sumstats = (
         sumstats
         .withColumn('gene_id', split('phenotype_id', ':').getItem(4))
         .withColumn('splicing_cluster', split('phenotype_id', ':').getItem(3))
-        .withColumn('expr_feature', split('phenotype_id', ':(?!.*:)').getItem(0))
+        
+        # Thought of extracting expression 'feature', e.g. chr1:15038:15796:clu_50677, but we don't need it
+        # We use a regex ':(?!.*:)' to match the last : in the string, to get everything up until the gene ID.
+        # This uses a negative lookahead. See it working on regexr: https://regexr.com/63fqh
+        #.withColumn('expr_feature', split('phenotype_id', ':(?!.*:)').getItem(0))
     )
 
     # Add sample size
@@ -155,7 +166,7 @@ def main():
     #
     min_junction_pvals = (
         df
-        .groupby('expr_feature', 'gene_id')
+        .groupby('phenotype_id')
         .agg(count(col('pval_nominal')).alias('num_tests'),
              min(col('pval_nominal')).alias('min_junction_pval'))
     )
@@ -163,7 +174,7 @@ def main():
     #min_junction_pvals.show(n=3)
 
     # Merge num_tests and min_junction_pval back onto the sumstats
-    df = df.join(min_junction_pvals, on=['expr_feature', 'gene_id'])
+    df = df.join(min_junction_pvals, on=['phenotype_id'])
 
     # Join the minimum pval per cluster to the main df
     min_cluster_pvals = (
@@ -193,7 +204,7 @@ def main():
 
     min_junction_pvals = (
         df
-        .groupby('expr_feature', 'gene_id')
+        .groupby('phenotype_id')
         .agg(count(col('pval_nominal')).alias('num_tests'))
     )
     df = df.persist()
@@ -208,7 +219,6 @@ def main():
         df
         .withColumn('type', lit('sqtl'))
         .withColumn('study_id', lit(args.study_id))
-        .withColumn('phenotype_id', col('gene_id'))
         .withColumn('bio_feature', lit(args.qtl_group))
         .withColumnRenamed('slope', 'beta')
         .withColumnRenamed('slope_se', 'se')
@@ -221,34 +231,32 @@ def main():
     )
 
     # Order and select columns
-    df = (
-        df.select(
-            'type',
-            'study_id',
-            'phenotype_id',
-            'bio_feature',
-            'gene_id',
-            'expr_feature',
-            'chrom',
-            'pos',
-            'ref',
-            'alt',
-            'beta',
-            'se',
-            'pval',
-            'n_total',
-            'n_cases',
-            'eaf',
-            'mac',
-            'mac_cases',
-            'num_tests',
-            'info',
-            'is_cc'
-        )
-    )
+    col_order = [
+        'type',
+        'study_id',
+        'bio_feature',
+        'phenotype_id',
+        'gene_id',
+        'chrom',
+        'pos',
+        'ref',
+        'alt',
+        'beta',
+        'se',
+        'pval',
+        'n_total',
+        'n_cases',
+        'eaf',
+        'mac',
+        'mac_cases',
+        'num_tests',
+        'info',
+        'is_cc'
+    ]
+    df = df.select(col_order)
 
     # Drop NA rows
-    required_cols = ['type', 'study_id', 'phenotype_id', 'bio_feature', 'expr_feature',
+    required_cols = ['type', 'study_id', 'phenotype_id', 'bio_feature',
                     'gene_id', 'chrom', 'pos', 'ref', 'alt', 'beta', 'se', 'pval']
     df = df.dropna(subset=required_cols)
     df = df.persist()
@@ -264,7 +272,7 @@ def main():
     (
         df
         .write
-        .partitionBy('chrom')
+        .partitionBy('bio_feature', 'chrom')
         .parquet(
             args.out_parquet,
             mode='append',
