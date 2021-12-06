@@ -89,7 +89,7 @@ def main():
 
             # Output file uses study_id as base name, and is partitioned on
             # bio_feature (tissue type and condition)
-            record['out_parquet'] = config_dict['out_parquet'].format(record['study_id'], record['qtl_group'])
+            record['out_parquet'] = config_dict['out_parquet'].format(record['study_id'])
             record['out_log'] = config_dict['out_log'].format(record['study_id'], record['qtl_group'])
             
             # Write to manifest
