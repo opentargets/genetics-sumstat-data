@@ -5,15 +5,22 @@ Note: Currently we only apply this to the full set of sumstats each time, which 
 
 Instructions:
 1. Edit "Args" in `filter_gwas.py`
-2. Edit "Args" in `filter_molecular_trait.py`
+2. Edit paths as needed in `filter_molecular_trait.py`
 3. Run (see below)
+
+## Update molecular trait studies list
+```
+gsutil ls gs://genetics-portal-dev-sumstats/unfiltered/molecular_trait/*.parquet > molecular_trait_list.txt
+```
+
+## Run
 
 ```bash
 # Single-node
 gcloud beta dataproc clusters create \
     js-sumstatfilter \
     --image-version=preview \
-    --properties=spark:spark.debug.maxToStringFields=100,spark:spark.executor.cores=14,spark:spark.executor.instances=4 \
+    --properties=spark:spark.debug.maxToStringFields=100,spark:spark.executor.cores=7,spark:spark.executor.instances=8 \
     --master-machine-type=n2-standard-64 \
     --master-boot-disk-size=2TB \
     --num-master-local-ssds=0 \
