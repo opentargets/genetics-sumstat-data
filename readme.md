@@ -32,9 +32,9 @@ Simple script to check pyspark is able to work properly `test_pyspark.py`
   - GWAS: `gs://genetics-portal-sumstats-b38/unfiltered/gwas`
   - Molecular trait: `gs://genetics-portal-sumstats-b38/unfiltered/molecular_trait`
 
- 2. Filter to p < 0.05:
-  - GWAS: `gs://genetics-portal-sumstats-b38/filtered/pvalue_0.05/gwas`
-  - Molecular trait: `gs://genetics-portal-sumstats-b38/filtered/pvalue_0.05/molecular_trait`
+ 2. Filter to p < 0.005:
+  - GWAS: `gs://genetics-portal-sumstats-b38/filtered/pvalue_0.005/gwas`
+  - Molecular trait: `gs://genetics-portal-sumstats-b38/filtered/pvalue_0.005/molecular_trait`
 
  3. Filter to keep regions within 2Mb of a "significant" association:
   - GWAS: `gs://genetics-portal-sumstats-b38/filtered/significant_window_2mb/gwas`
