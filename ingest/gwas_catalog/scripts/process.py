@@ -115,7 +115,7 @@ def main():
         #
         if nrows < args.min_rows:
             if logger:
-                logger.info('Skpping as only {0} rows is fewer than minimum of {1}'.format(nrows, args.min_rows))
+                logger.info('Skipping as only {0} rows is fewer than minimum of {1}'.format(nrows, args.min_rows))
             raise SumstatException("Too few rows")
         #
         # Fill in effect allele frequency using gnomad NFE frequency ---------------

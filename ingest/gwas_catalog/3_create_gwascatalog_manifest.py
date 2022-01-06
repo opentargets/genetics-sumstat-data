@@ -24,6 +24,9 @@ def main():
     # Metadata
     in_metadata = 'configs/gwas_metadata_curated.latest.tsv'
 
+    # Available harmonised input files
+    input_path_list = "configs/gwascatalog_inputs/gcs_input_paths.txt"
+
     # List of completed datasets on GCS
     # gsutil ls "gs://genetics-portal-sumstats-b38/unfiltered/gwas/*/_SUCCESS" > configs/gwascatalog_inputs/gcs_completed_paths.txt
     # Use `in_completed_path_list = None` if first run
@@ -40,12 +43,13 @@ def main():
 
     # Output directory for sumstats on GCS
     #out_gs_path = 'gs://genetics-portal-sumstats-b38/unfiltered/gwas/'
-    out_gs_path = f'gs://genetics-portal-dev-sumstats/unfiltered/gwas/{version_date}/'
-    out_log_path = 'gs://genetics-portal-dev-sumstats/logs/unfiltered/ingest/gwas_catalog/'
+    out_gs_path = f'gs://genetics-portal-dev-sumstats/unfiltered/gwas_{version_date}/'
+    out_log_path = f'gs://genetics-portal-dev-sumstats/logs/unfiltered/ingest/gwas_{version_date}/'
 
     #
     # Load --------------------------------------------------------------------
     #
+    input_paths = pd.read_csv(input_path_list, header=None, names=['gcs_path'])
 
     metadata = pd.read_csv(in_metadata, sep='\t', header=0)
     
@@ -97,6 +101,12 @@ def main():
             # Add fields
             sumstat_filename = os.path.basename(in_record['gwascat_path'])
             out_record['in_tsv'] = gcs_harmonised_root + sumstat_filename
+            
+            # Only add to manifest if file exists
+            if (not out_record['in_tsv'] in input_paths['gcs_path'].values):
+                print('Study {}: File {} not found on GCS. Skipping.'.format(in_record['study_id'], out_record['in_tsv']))
+                continue
+
             out_record['in_af'] = gs_gnomad_path
             out_record['study_id'] = study_id
             out_record['n_total'] = int(in_record['n_total'])

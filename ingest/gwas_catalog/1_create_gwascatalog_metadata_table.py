@@ -30,6 +30,7 @@ def main():
     req_cols = {
         'STUDY ACCESSION': 'study_id',
         'PUBMEDID': 'pmid',
+        'DISEASE/TRAIT': 'trait',
         'INITIAL SAMPLE SIZE': 'sample_info'
     }
     study_info = (
@@ -66,7 +67,7 @@ def main():
     num_rows_orig = len(df.index)
     df = df[ [id_dict[id] <= 1 for id in df['study_id']]]
     num_rows_dropped = num_rows_orig - len(df.index)
-    print(f'Dropped {num_rows_dropped} rows with duplicate study IDs')
+    print(f'Dropped {num_rows_dropped} rows with duplicate study IDs\n    (Normally have just over 1124 studies, which are duplicates from Suhre et al)')
 
     with open('duplicate_study_ids.json', 'w') as f:
         dup_dict = {id: count for id, count in id_dict.items() if count > 1}
@@ -85,9 +86,11 @@ def main():
 
     # Add in lines from previous metadata that weren't merged
     missing_studies = set(prev_metadata['study_id']).difference(merged['study_id'])
-    merged = merged.append(prev_metadata[prev_metadata['study_id'].isin(missing_studies)],
-                           ignore_index=True)
-
+    missing_rows = prev_metadata[prev_metadata['study_id'].isin(missing_studies)]
+    if (len(missing_rows) > 0):
+        print('NOTE: {} rows in previous table that are now missing sumstat files'.format(len(missing_rows)))
+    merged = merged.append(missing_rows, ignore_index=True)
+    
     # Add a column indicating whether the study is already ingested
     completed = pd.read_csv(completed_paths, sep='\t', header=None, names=['path'])
     completed['study_id'] = completed['path'].apply(find_study_id)
@@ -101,6 +104,13 @@ def main():
     )
     merged['to_ingest'] = ''
     
+    # Put to_ingest column as last
+    col_order = [c for c in merged if c not in ['to_ingest', 'note']] + ['to_ingest', 'note']
+    merged = merged[col_order]
+
+    # Sort so that already ingested rows come last
+    merged.sort_values(by=['ingested', 'note'], inplace=True, na_position='first')
+
     # Write merged metadata
     os.makedirs(os.path.dirname(metadata_out), exist_ok=True)
     merged.to_csv(metadata_out, sep='\t', index=None)

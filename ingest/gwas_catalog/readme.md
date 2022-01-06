@@ -3,13 +3,14 @@ Ingest GWAS Catalog sumstats
 
 Spark workflow to read, clean and transfrom summary stats from GWAS Catalog.
 
-Latest update:
-- 1301 new studies with sumstats and EUR ancestry
+Latest updates:
+- V7: 
+- V6: 1301 new studies with sumstats and EUR ancestry
 
-#### Usage
+### Usage
 ```
 # Get latest tables from GWAS catalog
-0_download_updated_tables.sh
+bash 0_download_updated_tables.sh
 
 # Update metadata table (outputs file configs/gwascat_metadata_merged.tsv)
 python 1_create_gwascatalog_metadata_table.py
@@ -26,16 +27,16 @@ gsutil cp 'configs/gwas_metadata_curated.latest.tsv' gs://genetics-portal-dev-su
 
 # Download the sumstats we need to GCS (those not already completed).
 # Run steps from here:
-2_download_gwascatalog_to_gcs.sh
+bash 2_download_gwascatalog_to_gcs.sh
 
 # Get list of input files on GCS
-gsutil -m ls gs://genetics-portal-dev-raw/gwas_catalog/harmonised_210817/\*.tsv.gz > configs/gwascatalog_inputs/gcs_input_paths.txt
+gsutil -m ls gs://genetics-portal-dev-raw/gwas_catalog/harmonised_211216/\*.tsv.gz > configs/gwascatalog_inputs/gcs_input_paths.txt
 
 # Create manifest file
 # This requires input file configs/gwas_metadata_curated.latest.tsv
 # Creates output file configs/gwascatalog.manifest.json
 version_date=`date +%y%m%d`
-version_date='210817'
+version_date='211216'
 python 3_create_gwascatalog_manifest.py $version_date
 cp configs/gwascatalog.manifest.json configs/gwascatalog.manifest.json.bak
 head -n 5 configs/gwascatalog.manifest.json.bak > configs/gwascatalog.manifest.json
@@ -52,13 +53,17 @@ python run_all.py
 
 # Check outputs and any errors
 #gsutil -m ls "gs://genetics-portal-dev-sumstats/unfiltered/gwas/*/*.parquet/_SUCCESS" > configs/gwascatalog_outputs/ingest_completed_paths.txt
-gsutil -m ls "gs://genetics-portal-dev-sumstats/unfiltered/gwas/210817/*.parquet/_SUCCESS" > configs/gwascatalog_outputs/ingest_completed_paths.txt
-gsutil -m ls -l "gs://genetics-portal-dev-sumstats/logs/unfiltered/ingest/gwas_catalog/*.log/*.txt" > configs/gwascatalog_outputs/ingest_completed_logs.txt
-gsutil -m ls "gs://genetics-portal-dev-sumstats/unfiltered/gwas/**/_SUCCESS" > configs/gwascatalog_inputs/gcs_completed_paths.txt
+gsutil -m ls "gs://genetics-portal-dev-sumstats/unfiltered/gwas_211216/*.parquet/_SUCCESS" > configs/gwascatalog_outputs/ingest_completed_paths.txt
+#gsutil -m ls -l "gs://genetics-portal-dev-sumstats/logs/unfiltered/ingest/gwas_catalog/*.log" > configs/gwascatalog_outputs/ingest_completed_logfile_list.txt
+gsutil cat -h gs://genetics-portal-dev-sumstats/logs/unfiltered/ingest/gwas_211216/*.log/*.txt > configs/gwascatalog_outputs/ingest_logs_all.txt
+
+# Get a few lines from each input file where we don't find the output
+# file present, to help identify why these GWAS failed.
+time python 4_check_completed_files.py > failed_file_ingests.txt
 
 ```
 
-#### Starting a Dataproc cluster
+### Starting a Dataproc cluster
 
 ```
 # Start large server
@@ -119,7 +124,7 @@ gcloud compute ssh js-ingest-gwascatalog-m \
 gcloud dataproc clusters update js-ingest-gwascatalog \
     --region=europe-west1 \
     --num-workers=10 \
-    --num-secondary-workers=20
+    --num-secondary-workers=10
 ```
 
 Dataproc info: https://stackoverflow.com/questions/36506070/how-to-queue-new-jobs-when-running-spark-on-dataproc
