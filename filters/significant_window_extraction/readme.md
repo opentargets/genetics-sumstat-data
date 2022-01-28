@@ -9,6 +9,7 @@ This will massively reduce the size of the input data for fine-mapping and coloc
 # Get list of all input parquet files
 gsutil -m ls "gs://genetics-portal-dev-sumstats/unfiltered/molecular_trait/*.parquet/_SUCCESS" > gcs_input_paths.txt
 gsutil -m ls "gs://genetics-portal-dev-sumstats/unfiltered/gwas/*.parquet/_SUCCESS" >> gcs_input_paths.txt
+gsutil -m ls "gs://genetics-portal-dev-sumstats/unfiltered/gwas_211216/*.parquet/_SUCCESS" > gcs_input_paths.txt
 
 # Get list of completed files
 gsutil -m ls "gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/molecular_trait/*.parquet/_SUCCESS" > gcs_completed_paths.txt
@@ -98,7 +99,7 @@ gsutil -m ls -d "gs://genetics-portal-dev-sumstats/filtered/significant_window_2
 gcloud beta dataproc clusters create \
     js-sumstatfilter \
     --image-version=preview \
-    --properties=spark:spark.debug.maxToStringFields=100,spark:spark.executor.cores=70,spark:spark.executor.instances=1 \
+    --properties=spark:spark.debug.maxToStringFields=100,spark:spark.executor.cores=12,spark:spark.executor.instances=6 \
     --master-machine-type=n2-highmem-80 \
     --master-boot-disk-size=2TB \
     --zone=europe-west1-d \
