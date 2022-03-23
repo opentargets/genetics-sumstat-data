@@ -29,6 +29,7 @@ python run_all.py
 
 # When all done and verified, then delete GTEx sumstats from our bucket
 gsutil -m rm -r gs://genetics-portal-dev-raw/gtex_v8/GTEx_Analysis_v8_EUR_sQTL_all_associations
+
 ```
 
 
