@@ -1,15 +1,23 @@
 Extract windows around significant positions
 ============================================
 
-Scans summary statistic files and extracts only windows around "significant" regions.
+Scans summary statistic files and extracts only windows around "significant" regions. This massively reduces the size of the input data for fine-mapping and coloc pipelines.
 
-This will massively reduce the size of the input data for fine-mapping and coloc pipelines.
+If running on a new batch of ingested sumstats, then use the folder where the new sumstats were ingested. Since in general we don't want to re-run fine-mapping for all past studies, it's best to only extract significant windows for new studies as well. Downstream in the fine-mapping pipeline we can then identify (by date) the studies that still need to be fine-mapped.
 
 ```
-# Get list of all input parquet files
+# If recalling windows for ALL sumstats, then list all ingested sumstat files
 gsutil -m ls "gs://genetics-portal-dev-sumstats/unfiltered/molecular_trait/*.parquet/_SUCCESS" > gcs_input_paths.txt
 gsutil -m ls "gs://genetics-portal-dev-sumstats/unfiltered/gwas/*.parquet/_SUCCESS" >> gcs_input_paths.txt
-gsutil -m ls "gs://genetics-portal-dev-sumstats/unfiltered/gwas_211216/*.parquet/_SUCCESS" > gcs_input_paths.txt
+
+# If using just a new folder of sumstats, then update the path below
+gsutil -m ls "gs://genetics-portal-dev-sumstats/unfiltered/gwas_220217/*.parquet/_SUCCESS" > gcs_input_paths.txt
+gsutil -m ls "gs://genetics-portal-dev-sumstats/unfiltered/molecular_trait/GTEx-sQTL.parquet/_SUCCESS" >> gcs_input_paths.txt
+
+gsutil -m ls "gs://genetics-portal-dev-sumstats/unfiltered/gwas_220218/*.parquet/_SUCCESS" > gcs_input_paths.txt
+gsutil -m ls "gs://genetics-portal-dev-sumstats/unfiltered/molecular_trait_new/FOLKERSEN*.parquet/_SUCCESS" >> gcs_input_paths.txt
+
+gsutil -m ls "gs://genetics-portal-dev-sumstats/unfiltered/gwas_220212/*.parquet/_SUCCESS" > gcs_input_paths.txt
 
 # Get list of completed files
 gsutil -m ls "gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/molecular_trait/*.parquet/_SUCCESS" > gcs_completed_paths.txt
@@ -42,7 +50,7 @@ gcloud beta dataproc clusters create \
     --master-machine-type=n2-standard-8 \
     --master-boot-disk-size=1TB \
     --worker-machine-type=n2-standard-8 \
-    --num-workers=2 \
+    --num-workers=4 \
     --num-secondary-workers=0 \
     --worker-boot-disk-size=1TB \
     --zone=europe-west1-d \
@@ -81,8 +89,8 @@ gcloud compute ssh js-sumstatfilter-m \
 gcloud dataproc clusters update js-sumstatfilter \
     --region=europe-west1 \
     --project=open-targets-genetics-dev \
-    --num-workers=4 \
-    --num-secondary-workers=4
+    --num-workers=8 \
+    --num-secondary-workers=8
 ```
 
 ### Commands for union/repartitioning
@@ -92,7 +100,6 @@ gcloud dataproc clusters update js-sumstatfilter \
 ```
 # Get list of completed significant window files
 gsutil -m ls -d "gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/molecular_trait/*.parquet" > gcs_completed_moltraits.txt
-gsutil cp gcs_completed_moltraits.txt gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/gcs_completed_moltraits.txt
 gsutil -m ls -d "gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/gwas/*.parquet" > gcs_completed_gwas.txt
 
 # Single-node (for taking union and repartitioning)

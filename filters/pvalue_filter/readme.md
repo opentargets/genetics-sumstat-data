@@ -4,14 +4,11 @@ Filter summary statistics by pvalue
 Note: Currently we only apply this to the full set of sumstats each time, which is duplicating the compute with each release. Potentially we could only filter new studies, using something similar to what is described here: https://stackoverflow.com/a/68569465
 
 Instructions:
-1. Edit "Args" in `filter_gwas.py`
-2. Edit paths as needed in `filter_molecular_trait.py`
-3. Run (see below)
+1. Ensure that all GWAS have been put in the root GWAS folder (gs://genetics-portal-dev-sumstats/unfiltered/gwas), if new GWAS have been ingested
+2. Edit "Args" in `filter_gwas.py`
+3. Edit paths as needed in `filter_molecular_trait.py`
+4. Run (see below)
 
-## Update molecular trait studies list
-```
-gsutil ls gs://genetics-portal-dev-sumstats/unfiltered/molecular_trait/*.parquet > molecular_trait_list.txt
-```
 
 ## Run
 

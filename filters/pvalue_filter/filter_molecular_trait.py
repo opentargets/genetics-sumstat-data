@@ -120,10 +120,6 @@ def main():
     df = (
         df.withColumnRenamed('type', 'type_id')
           .withColumn('info', col('info').cast(DoubleType()))
-          .drop('col_study_id')
-        # In the last release, we copied all data into molecular_trait_partitioned with
-        # an artificial partitioning column col_study_id so that all mol_trait data
-        # could be read in at once, but this isn't needed downstream.
     )
     
     # # Repartition

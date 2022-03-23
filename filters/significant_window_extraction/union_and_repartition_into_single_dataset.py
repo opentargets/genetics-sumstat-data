@@ -53,6 +53,7 @@ def main():
         'gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/molecular_trait/GENCORD.parquet',
         'gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/molecular_trait/GEUVADIS.parquet',
         'gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/molecular_trait/GTEx-eQTL.parquet',
+        'gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/molecular_trait/GTEx-sQTL.parquet',
         'gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/molecular_trait/HipSci.parquet',
         'gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/molecular_trait/Kasela_2017.parquet',
         'gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/molecular_trait/Lepik_2017.parquet',

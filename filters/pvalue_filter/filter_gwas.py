@@ -91,11 +91,11 @@ def main():
           .withColumn('info', col('info').cast(DoubleType()))
     )
     
-    # # Repartition
-    # df = (
-    #     df.repartitionByRange('chrom', 'pos')
-    #     .sortWithinPartitions('chrom', 'pos')
-    # )
+    # Repartition
+    df = (
+        df.repartitionByRange(5000, 'chrom', 'pos')
+        .sortWithinPartitions('chrom', 'pos')
+    )
     
     # Save
     (
