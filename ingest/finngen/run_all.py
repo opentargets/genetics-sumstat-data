@@ -29,7 +29,6 @@ def main():
         # Build script args
         args = [
             '--in_sumstats', manifest['in_tsv'],
-            '--in_af', manifest['in_af'],
             '--out_parquet', manifest['out_parquet'],
             '--study_id', manifest['study_id'],
             '--n_total', str(manifest['n_total'])
