@@ -4,16 +4,20 @@ Filter summary statistics by pvalue
 Note: Currently we only apply this to the full set of sumstats each time, which is duplicating the compute with each release. Potentially we could only filter new studies, using something similar to what is described here: https://stackoverflow.com/a/68569465
 
 Instructions:
-1. Edit "Args" in `filter_gwas.py`
-2. Edit "Args" in `filter_molecular_trait.py`
-3. Run (see below)
+1. Ensure that all GWAS have been put in the root GWAS folder (gs://genetics-portal-dev-sumstats/unfiltered/gwas), if new GWAS have been ingested
+2. Edit "Args" in `filter_gwas.py`
+3. Edit paths as needed in `filter_molecular_trait.py`
+4. Run (see below)
+
+
+## Run
 
 ```bash
 # Single-node
 gcloud beta dataproc clusters create \
     js-sumstatfilter \
     --image-version=preview \
-    --properties=spark:spark.debug.maxToStringFields=100,spark:spark.executor.cores=14,spark:spark.executor.instances=4 \
+    --properties=spark:spark.debug.maxToStringFields=100,spark:spark.executor.cores=7,spark:spark.executor.instances=8 \
     --master-machine-type=n2-standard-64 \
     --master-boot-disk-size=2TB \
     --num-master-local-ssds=0 \

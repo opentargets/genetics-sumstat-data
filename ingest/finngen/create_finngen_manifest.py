@@ -1,17 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# Ed Mountjoy
-# Modified and updated to process finngen dataset by Miguel Carmona carmona@ebi.ac.uk
-# 
+# Jeremy Schwartzentruber
 #
 
-
-import sys
 import os
 import pandas as pd
 import json
-import subprocess as sp
 
 def main():
 
@@ -19,9 +14,9 @@ def main():
     # Args --------------------------------------------------------------------
     #
 
-    study_prefix = 'FINNGEN_R5_'
+    study_prefix = 'FINNGEN_R6_'
     # Manifest files from Finngen release
-    in_finngen = 'configs/inputs/r5_finngen.json'
+    in_finngen = 'configs/inputs/r6_finngen.json'
     in_gs_path_list = 'configs/inputs/gcs_input_paths_finngen.txt'
 
     # List of completed datasets on GCS
@@ -29,14 +24,11 @@ def main():
     # Use `in_completed_path_list = None` if first run
     in_completed_path_list = 'configs/inputs/gcs_completed_paths.txt'
 
-    # Input variant index on GCS
-    gs_gnomad_path = 'gs://genetics-portal-data/variant-annotation/190129/variant-annotation.parquet'
-
     # Path to write main manifest file
     out_manifest = 'configs/finngen.manifest.json'
 
     # Output directory for sumstats on GCS
-    out_gs_path = 'gs://genetics-portal-dev-sumstats/unfiltered/gwas/'
+    out_gs_path = 'gs://genetics-portal-dev-sumstats/unfiltered/gwas_220212/'
 
     keep_columns = [
         'code',
@@ -63,7 +55,7 @@ def main():
     finngen['n_total'] = finngen['n_cases'] + finngen['n_controls']
 
     gcs = pd.read_csv(in_gs_path_list, sep='\t', header=None, names=['in_path'])
-    gcs['code'] = gcs['in_path'].apply(parse_code, prefix=study_prefix, splitBy='finngen_R5_')
+    gcs['code'] = gcs['in_path'].apply(parse_code, prefix=study_prefix, splitBy='finngen_R6_')
 
     merged = pd.merge(gcs, finngen, on='code')
     # merged.to_csv('merged.tsv', sep='\t', index=None)
@@ -90,7 +82,6 @@ def main():
 
             # Add fields
             out_record['in_tsv'] = in_record['in_path']
-            out_record['in_af'] = gs_gnomad_path
             out_record['study_id'] = in_record['code']
             out_record['n_total'] = int(in_record['n_total'])
             try:

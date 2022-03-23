@@ -40,24 +40,13 @@ def main():
     global spark
 
     if args.local:
-        # {
-        #   "out_parquet": "gs://genetics-portal-sumstats-b38/unfiltered/gwas/FINNGEN_AB1_INTESTINAL_INFECTIONS.parquet",
-        #   "in_tsv": "gs://genetics-portal-analysis/finngen-v2/summary_stats/finngen_r2_AB1_INTESTINAL_INFECTIONS.gz",
-        #   "in_af": "gs://genetics-portal-data/variant-annotation/190129/variant-annotation.parquet",
-        #   "study_id": "FINNGEN_AB1_INTESTINAL_INFECTIONS",
-        #   "n_total": 96499,
-        #   "n_cases": 8247
-        # }
         args.min_rows = 10000
         args.min_mac = 10
         args.n_cases = 8247
         args.n_total = 96499
         args.study_id = 'FINNGEN_AB1_INTESTINAL_INFECTIONS'
-        args.in_af = 'example_data/variant-annotation_af-only_chrom10.parquet'
         args.in_sumstats = '/Users/jeremys/work/otgenetics/genetics-sumstat-data/ingest/finngen/example_data/finngen_R4_AB1_INTESTINAL_INFECTIONS.gz'
         args.out_parquet = '/Users/jeremys/work/otgenetics/genetics-sumstat-data/ingest/finngen/output/test.parquet'
-        #args.in_sumstats = '/home/mkarmona/src/github/opent/genetics-analysis/genetics-sumstat-data/ingest/finngen/finngen_r2_AB1_INTESTINAL_INFECTIONS.gz'
-        #args.out_parquet = '/home/mkarmona/src/github/opent/genetics-analysis/genetics-sumstat-data/ingest/finngen/output/test.parquet'
 
         spark = (
             pyspark.sql.SparkSession.builder
@@ -197,7 +186,7 @@ def load_sumstats(inf):
     df = (
         df.withColumnRenamed('#chrom', 'chrom')
             .withColumnRenamed('sebeta', 'se')
-            .withColumnRenamed('maf', 'eaf')
+            .withColumnRenamed('af_alt', 'eaf')
             .withColumn('info', lit(None).cast(DoubleType()))
     )
 
@@ -232,7 +221,6 @@ def parse_args():
     """ Load command line args """
     parser = argparse.ArgumentParser()
     parser.add_argument('--in_sumstats', metavar="<file>", help=('Input sumstat file file'), type=str, required=False)
-    parser.add_argument('--in_af', metavar="<file>", help=('Input allele frequency parquet'), type=str, required=False)
     parser.add_argument('--out_parquet', metavar="<file>", help=("Output file"), type=str, required=False)
     parser.add_argument('--study_id', metavar="<str>", help=("Study ID"), type=str, required=False)
     parser.add_argument('--n_total', metavar="<int>", help=("Total sample size"), type=int, required=False)

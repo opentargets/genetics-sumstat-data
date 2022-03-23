@@ -1,0 +1,8 @@
+study_id	bio_feature	sample_size	filename_map	data_path
+FOLKERSEN_2017	UBERON_0001969	3394	gs://genetics-portal-dev-raw/protein-gwas/mappings/folkersen_gene_filename_map.tsv	gs://genetics-portal-dev-raw/protein-gwas/harmonised/FOLKERSEN/formatted_olinkGWAS_chrALL_pheno*.hm.qc.tsv
+HILLARY_2019	UBERON_0001969	876	gs://genetics-portal-dev-raw/protein-gwas/mappings/hillary_gene_filename_map.tsv	gs://genetics-portal-dev-raw/protein-gwas/harmonised/HILLARY/*.hm.qc.tsv
+OLLI_2016	UBERON_0001969	8293	gs://genetics-portal-dev-raw/protein-gwas/mappings/olli_gene_filename_map.tsv	gs://genetics-portal-dev-raw/protein-gwas/harmonised/OLLI/*.h.tsv
+PIETZNER_2020	UBERON_0001969	10708	gs://genetics-portal-dev-raw/protein-gwas/mappings/pietzner_gene_filename_map.tsv	gs://genetics-portal-dev-raw/protein-gwas/harmonised/PIETZNER/*build38.tsv
+FOLKERSEN_2020	UBERON_0001969	30931	gs://genetics-portal-dev-raw/protein-gwas/mappings/scallop_gene_filename_map.tsv	gs://genetics-portal-dev-raw/protein-gwas/harmonised/SCALLOP/*.tsv
+SUHRE_2017	UBERON_0001969	1000	gs://genetics-portal-dev-raw/protein-gwas/mappings/suhre_gene_filename_map.tsv	gs://genetics-portal-dev-raw/protein-gwas/harmonised/SUHRE/*.merged.h.tsv
+SUN_2018	UBERON_0001969	3301	gs://genetics-portal-dev-raw/protein-gwas/mappings/sun_gene_filename_map.tsv	gs://genetics-portal-dev-raw/protein-gwas/harmonised/SUN/*.tsv

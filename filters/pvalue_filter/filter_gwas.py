@@ -19,7 +19,7 @@ from datetime import date
 
 def main():
     in_completed = None
-    pval_threshold = 0.05
+    pval_threshold = 0.005
     local = False
     
     if local:
@@ -29,8 +29,8 @@ def main():
     else:
         # Args (server)
         #in_completed = 'gs://genetics-portal-sumstats-b38/filtered/pvalue_0.05/gwas/190612' # Sumstats already filtered
-        in_pattern = 'gs://genetics-portal-dev-sumstats/unfiltered/gwas/*/*.parquet'
-        outf = 'gs://genetics-portal-dev-sumstats/filtered/pvalue_0.05/gwas/{version}'.format(
+        in_pattern = 'gs://genetics-portal-dev-sumstats/unfiltered/gwas/*.parquet'
+        outf = 'gs://genetics-portal-dev-sumstats/filtered/pvalue_0.005/gwas/{version}'.format(
             version=date.today().strftime("%y%m%d"))
     
     # Make spark session
@@ -91,11 +91,11 @@ def main():
           .withColumn('info', col('info').cast(DoubleType()))
     )
     
-    # # Repartition
-    # df = (
-    #     df.repartitionByRange('chrom', 'pos')
-    #     .sortWithinPartitions('chrom', 'pos')
-    # )
+    # Repartition
+    df = (
+        df.repartitionByRange(5000, 'chrom', 'pos')
+        .sortWithinPartitions('chrom', 'pos')
+    )
     
     # Save
     (

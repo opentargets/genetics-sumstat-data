@@ -1,0 +1,4 @@
+region: 'europe-west1'
+gene_meta: 'gs://genetics-portal-dev-data/21.10/inputs/lut/homo_sapiens_core_104_38_genes.json.gz'
+out_dir: 'gs://genetics-portal-dev-sumstats/unfiltered/molecular_trait_new'
+variant_af: 'gs://genetics-portal-data/variant-annotation/190129/variant-annotation.parquet'

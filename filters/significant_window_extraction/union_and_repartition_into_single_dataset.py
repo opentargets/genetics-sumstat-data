@@ -38,7 +38,7 @@ def main():
     #in_gwas_pattern = 'gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/*/gwas/*.parquet'
     #in_mol_path = 'gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/*/molecular_trait/*.parquet'
     outf = 'gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb_union'
-    n_parts = 1000
+    n_parts = 2000
     molecular_trait_list = [
         'gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/molecular_trait/Alasoo_2018.parquet',
         'gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/molecular_trait/BLUEPRINT.parquet',
@@ -53,6 +53,7 @@ def main():
         'gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/molecular_trait/GENCORD.parquet',
         'gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/molecular_trait/GEUVADIS.parquet',
         'gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/molecular_trait/GTEx-eQTL.parquet',
+        'gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/molecular_trait/GTEx-sQTL.parquet',
         'gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/molecular_trait/HipSci.parquet',
         'gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/molecular_trait/Kasela_2017.parquet',
         'gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/molecular_trait/Lepik_2017.parquet',
@@ -70,7 +71,13 @@ def main():
         'gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/molecular_trait/Young_2019.parquet',
         'gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/molecular_trait/eQTLGen.parquet',
         'gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/molecular_trait/iPSCORE.parquet',
-        'gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/molecular_trait/van_de_Bunt_2015.parquet'
+        'gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/molecular_trait/van_de_Bunt_2015.parquet',
+        'gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/molecular_trait/FOLKERSEN_2020.parquet',
+        'gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/molecular_trait/HILLARY_2019.parquet',
+        'gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/molecular_trait/OLLI_2016.parquet',
+        'gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/molecular_trait/PIETZNER_2020.parquet',
+        'gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/molecular_trait/SCALLOP_2020.parquet',
+        'gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/molecular_trait/SUHRE_2017.parquet'
     ]
 
     #

@@ -4,14 +4,10 @@
 # Jeremy Schwartzentruber
 #
 
-import sys
-import os
 import argparse
 from datetime import datetime
-import pandas
 import pyspark.sql
 from pyspark.sql.types import *
-from pyspark.sql import DataFrame
 from pyspark.sql.functions import *
 import pprint
 import logging
@@ -111,12 +107,20 @@ def main():
         sumstats
         .withColumn('phenotype_id', split('phenotype_id', '\.(?!.*\.)').getItem(0))
     )
+    
+    # Replace ':' with '^' in the phenotype_id column. This is needed for
+    # downstream processing, because phenotype_id may be used in a folder
+    # path, and colons are not allways allowed.
+    sumstats = (
+        sumstats
+        .withColumn('phenotype_id', regexp_replace('phenotype_id', ':', '^'))
+    )
 
     # Extract gene_id and splicing cluster
     sumstats = (
         sumstats
-        .withColumn('gene_id', split('phenotype_id', ':').getItem(4))
-        .withColumn('splicing_cluster', split('phenotype_id', ':').getItem(3))
+        .withColumn('gene_id', split('phenotype_id', '^').getItem(4))
+        .withColumn('splicing_cluster', split('phenotype_id', '^').getItem(3))
         
         # Thought of extracting expression 'feature', e.g. chr1:15038:15796:clu_50677, but we don't need it
         # We use a regex ':(?!.*:)' to match the last : in the string, to get everything up until the gene ID.
