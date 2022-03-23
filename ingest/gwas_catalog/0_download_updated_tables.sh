@@ -8,8 +8,8 @@ wget -O - https://www.ebi.ac.uk/gwas/api/search/downloads/studies_alternative > 
 # Unpublished studies - not currently used
 # wget -O - https://www.ebi.ac.uk/gwas/api/search/downloads/unpublished_studies > configs/gwascatalog_inputs/gwascat_unpublished_study_table.tsv
 
-# Get list of studies already ingested
+# Get list of studies already ingested (this step takes a few minutes)
 gsutil -m ls "gs://genetics-portal-dev-sumstats/unfiltered/gwas/**/_SUCCESS" > configs/gwascatalog_inputs/gcs_completed_paths.txt
 
 # Get manually curated metadata table from previous release
-gsutil cp 'gs://genetics-portal-dev-sumstats/unfiltered/gwas_metadata_curated.latest.tsv' 'configs/gwas_metadata_curated.latest.previous.tsv' 
+gsutil cp 'gs://genetics-portal-dev-sumstats/unfiltered/metadata/gwas_metadata_curated.latest.tsv' 'configs/gwas_metadata_curated.latest.previous.tsv' 

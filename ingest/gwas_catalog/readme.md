@@ -9,8 +9,13 @@ Latest updates:
 
 ### Usage
 ```
+conda activate sumstats # Env created in root of genetics-sumstat-data repo
+
+version_date=`date +%y%m%d`
+version_date='220217' # You may want to fix the version date if running over more than one day
+
 # Get latest tables from GWAS catalog
-bash 0_download_updated_tables.sh
+bash 0_download_updated_tables.sh # Takes a few min
 
 # Update metadata table (outputs file configs/gwascat_metadata_merged.tsv)
 python 1_create_gwascatalog_metadata_table.py
@@ -18,49 +23,62 @@ python 1_create_gwascatalog_metadata_table.py
 # Edit metadata table manually (!) to
 # 1. Flag which studies should be imported in the "to_ingest" column (currently, only studies that are European)
 # 2. Check total sample size, case count for case-control studies
-# 3. Save as gwas_metadata_curated.latest.tsv
+# 3. Save as configs/gwas_metadata_curated.latest.tsv
 
 # Copy updated metadata table to GCS
-version_date=`date +%y%m%d`
-gsutil cp 'configs/gwas_metadata_curated.latest.tsv' gs://genetics-portal-dev-sumstats/unfiltered/gwas_metadata_curated.${version_date}.tsv
-gsutil cp 'configs/gwas_metadata_curated.latest.tsv' gs://genetics-portal-dev-sumstats/unfiltered/
+gsutil cp 'configs/gwas_metadata_curated.latest.tsv' gs://genetics-portal-dev-sumstats/unfiltered/metadata/gwas_metadata_curated.${version_date}.tsv
+gsutil cp 'configs/gwas_metadata_curated.latest.tsv' gs://genetics-portal-dev-sumstats/unfiltered/metadata/
+gsutil -m ls "gs://genetics-portal-dev-sumstats/unfiltered/gwas_${version_date}/*/_SUCCESS" > configs/gwascatalog_inputs/gcs_completed_paths.txt
 
 # Download the sumstats we need to GCS (those not already completed).
 # Run steps from here:
-bash 2_download_gwascatalog_to_gcs.sh
+tmux
+bash 2_download_gwascatalog_to_gcs.sh $version_date
 
 # Get list of input files on GCS
-gsutil -m ls gs://genetics-portal-dev-raw/gwas_catalog/harmonised_211216/\*.tsv.gz > configs/gwascatalog_inputs/gcs_input_paths.txt
+gsutil -m ls gs://genetics-portal-dev-raw/gwas_catalog/harmonised_${version_date}/\*.tsv.gz > configs/gwascatalog_inputs/gcs_input_paths.txt
 
 # Create manifest file
 # This requires input file configs/gwas_metadata_curated.latest.tsv
 # Creates output file configs/gwascatalog.manifest.json
-version_date=`date +%y%m%d`
-version_date='211216'
 python 3_create_gwascatalog_manifest.py $version_date
-cp configs/gwascatalog.manifest.json configs/gwascatalog.manifest.json.bak
-head -n 5 configs/gwascatalog.manifest.json.bak > configs/gwascatalog.manifest.json
+
+# To test just 5 initially...
+#cp configs/gwascatalog.manifest.json configs/gwascatalog.manifest.json.bak
+#head -n 5 configs/gwascatalog.manifest.json.bak > configs/gwascatalog.manifest.json
+#tail -n +6 configs/gwascatalog.manifest.json.bak > configs/gwascatalog.manifest.json
 
 # Start cluster (see below)
 # Then set region
 gcloud config set dataproc/region europe-west1
 
 # Submit jobs to cluster
-tmux
+# Use tmux first, since submitting many jobs can take a while
 python run_all.py
 
 # Check that its working as expected, then increase cluster number of workers
+```
 
-# Check outputs and any errors
-#gsutil -m ls "gs://genetics-portal-dev-sumstats/unfiltered/gwas/*/*.parquet/_SUCCESS" > configs/gwascatalog_outputs/ingest_completed_paths.txt
-gsutil -m ls "gs://genetics-portal-dev-sumstats/unfiltered/gwas_211216/*.parquet/_SUCCESS" > configs/gwascatalog_outputs/ingest_completed_paths.txt
+### QC
+
+Check outputs and any errors
+```
+gsutil -m ls "gs://genetics-portal-dev-sumstats/unfiltered/gwas_${version_date}/*.parquet/_SUCCESS" > configs/gwascatalog_outputs/ingest_completed_paths.txt
 #gsutil -m ls -l "gs://genetics-portal-dev-sumstats/logs/unfiltered/ingest/gwas_catalog/*.log" > configs/gwascatalog_outputs/ingest_completed_logfile_list.txt
-gsutil cat -h gs://genetics-portal-dev-sumstats/logs/unfiltered/ingest/gwas_211216/*.log/*.txt > configs/gwascatalog_outputs/ingest_logs_all.txt
+gsutil cat -h gs://genetics-portal-dev-sumstats/logs/unfiltered/ingest/gwas_${version_date}/*.log/*.txt > configs/gwascatalog_outputs/ingest_logs_all.txt
+```
 
-# Get a few lines from each input file where we don't find the output
-# file present, to help identify why these GWAS failed.
+Get a few lines from each input file where we don't find the output file present, to help identify why these GWAS failed. Looking through this file should help to determine, for each failed GWAS, what the cause might be. Check whether beta/OR are present, whether harmonised SNP IDs are present, whether the odds ratios are valid/sensible
+```
+# (Takes 20+ min for 500+ GWAS)
 time python 4_check_completed_files.py > failed_file_ingests.txt
+```
 
+After going through the failed file ingests, you may want to annotate the file of curated metadata (configs/gwas_metadata_curated.latest.tsv) with any suitable notes, and upload that to GCS as above, so that these same GWAS aren't selected for ingestion in the future.
+
+When everything is done, delete the raw sumstat files on GCS.
+```
+gsutil -m rm -r gs://genetics-portal-dev-raw/gwas_catalog/harmonised_${version_date}
 ```
 
 ### Starting a Dataproc cluster
@@ -123,8 +141,8 @@ gcloud compute ssh js-ingest-gwascatalog-m \
 # To update the number of workers
 gcloud dataproc clusters update js-ingest-gwascatalog \
     --region=europe-west1 \
-    --num-workers=10 \
-    --num-secondary-workers=10
+    --num-workers=4 \
+    --num-secondary-workers=4
 ```
 
 Dataproc info: https://stackoverflow.com/questions/36506070/how-to-queue-new-jobs-when-running-spark-on-dataproc

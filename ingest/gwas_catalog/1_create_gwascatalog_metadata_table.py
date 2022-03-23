@@ -74,7 +74,8 @@ def main():
         json.dump(dup_dict, f)
 
     prev_metadata = pd.read_csv(prev_metadata_input, sep='\t')
-    prev_metadata.drop(columns=['gwascat_path', 'pmid', 'sample_info', 'n_cases', 'n_controls', 'n_quant', 'ingested'], inplace=True)
+    # Only interested in keeping the "note" column from previous curation
+    prev_metadata = prev_metadata.loc[:, ['study_id', 'note']]
 
     # Merge with previous metadata table
     merged = pd.merge(
@@ -88,7 +89,8 @@ def main():
     missing_studies = set(prev_metadata['study_id']).difference(merged['study_id'])
     missing_rows = prev_metadata[prev_metadata['study_id'].isin(missing_studies)]
     if (len(missing_rows) > 0):
-        print('NOTE: {} rows in previous table that are now missing sumstat files'.format(len(missing_rows)))
+        print('NOTE: {} rows in previous table that are now missing sumstat files. Saving these to gwascat_missing_studies.tsv.'.format(len(missing_rows)))
+        missing_rows.to_csv("configs/gwascat_missing_studies.tsv", sep='\t', index=False)
     merged = merged.append(missing_rows, ignore_index=True)
     
     # Add a column indicating whether the study is already ingested
@@ -104,8 +106,12 @@ def main():
     )
     merged['to_ingest'] = ''
     
-    # Put to_ingest column as last
-    col_order = [c for c in merged if c not in ['to_ingest', 'note']] + ['to_ingest', 'note']
+    merged['ancestries'] = merged['sample_info'].apply(
+        extract_ancestries
+    )
+
+    # Put a few columns as last
+    col_order = [c for c in merged if c not in ['to_ingest', 'ancestries', 'note']] + ['to_ingest', 'ancestries', 'note']
     merged = merged[col_order]
 
     # Sort so that already ingested rows come last
@@ -113,7 +119,7 @@ def main():
 
     # Write merged metadata
     os.makedirs(os.path.dirname(metadata_out), exist_ok=True)
-    merged.to_csv(metadata_out, sep='\t', index=None)
+    merged.to_csv(metadata_out, sep='\t', index=False)
 
     return 0
 
@@ -139,6 +145,47 @@ def extract_sample_sizes(s):
     # print([n_cases, n_controls, n_quant])
     return [n_cases, n_controls, n_quant]
 
+def extract_ancestries(s):
+    ancestry_list = []
+    # There is surely a better way, but this is simple
+    if not s:
+        return("")
+    if re.search('African', s):
+        ancestry_list.append('African')
+    if re.search('Caribbean', s):
+        ancestry_list.append('Caribbean')
+    if re.search('Asian', s):
+        if re.search('South Asian', s):
+            ancestry_list.append('South Asian')
+        else:
+            ancestry_list.append('Asian')
+    if re.search('Chinese', s):
+        ancestry_list.append('Chinese')
+    if re.search('French', s):
+        ancestry_list.append('French')
+    if re.search('German', s):
+        ancestry_list.append('German')
+    if re.search('Sardinian', s):
+        ancestry_list.append('Sardinian')
+    if re.search('Hispanic', s):
+        ancestry_list.append('Hispanic')
+    if re.search('Latin', s):
+        ancestry_list.append('Latino')
+    if re.search('Korean', s):
+        ancestry_list.append('Korean')
+    if re.search('Japanese', s):
+        ancestry_list.append('Japanese')
+    if re.search('Native American', s):
+        ancestry_list.append('Native American')
+    if re.search('Finnish', s):
+        ancestry_list.append('Finnish')
+    if re.search('British', s):
+        ancestry_list.append('British')
+    if re.search('Scottish', s):
+        ancestry_list.append('Scottish')
+    if re.search('European', s):
+        ancestry_list.append('European')
+    return(','.join(ancestry_list))
 
 def find_study_id(text):
     ''' Returns the first matching GCST ID from a string
