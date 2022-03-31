@@ -17,7 +17,7 @@ Instructions:
 gcloud beta dataproc clusters create \
     js-sumstatfilter \
     --image-version=preview \
-    --properties=spark:spark.debug.maxToStringFields=100,spark:spark.executor.cores=7,spark:spark.executor.instances=8 \
+    --properties=spark:spark.debug.maxToStringFields=100,spark:spark.driver.memory=25g,spark:spark.executor.memory=25g,spark:spark.executor.cores=7,spark:spark.executor.instances=8 \
     --master-machine-type=n2-standard-64 \
     --master-boot-disk-size=2TB \
     --num-master-local-ssds=0 \

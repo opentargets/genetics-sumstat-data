@@ -10,14 +10,11 @@ If running on a new batch of ingested sumstats, then use the folder where the ne
 gsutil -m ls "gs://genetics-portal-dev-sumstats/unfiltered/molecular_trait/*.parquet/_SUCCESS" > gcs_input_paths.txt
 gsutil -m ls "gs://genetics-portal-dev-sumstats/unfiltered/gwas/*.parquet/_SUCCESS" >> gcs_input_paths.txt
 
-# If using just a new folder of sumstats, then update the path below
+# If using just a new folder of sumstats, then update the paths below
+# Paths for any new GWAS studies
 gsutil -m ls "gs://genetics-portal-dev-sumstats/unfiltered/gwas_220217/*.parquet/_SUCCESS" > gcs_input_paths.txt
+# Add paths for any new QTL studies
 gsutil -m ls "gs://genetics-portal-dev-sumstats/unfiltered/molecular_trait/GTEx-sQTL.parquet/_SUCCESS" >> gcs_input_paths.txt
-
-gsutil -m ls "gs://genetics-portal-dev-sumstats/unfiltered/gwas_220218/*.parquet/_SUCCESS" > gcs_input_paths.txt
-gsutil -m ls "gs://genetics-portal-dev-sumstats/unfiltered/molecular_trait_new/FOLKERSEN*.parquet/_SUCCESS" >> gcs_input_paths.txt
-
-gsutil -m ls "gs://genetics-portal-dev-sumstats/unfiltered/gwas_220212/*.parquet/_SUCCESS" > gcs_input_paths.txt
 
 # Get list of completed files
 gsutil -m ls "gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/molecular_trait/*.parquet/_SUCCESS" > gcs_completed_paths.txt
@@ -106,8 +103,8 @@ gsutil -m ls -d "gs://genetics-portal-dev-sumstats/filtered/significant_window_2
 gcloud beta dataproc clusters create \
     js-sumstatfilter \
     --image-version=preview \
-    --properties=spark:spark.debug.maxToStringFields=100,spark:spark.executor.cores=12,spark:spark.executor.instances=6 \
-    --master-machine-type=n2-highmem-80 \
+    --properties=spark:spark.debug.maxToStringFields=100,spark:spark.driver.memory=25g,spark:spark.executor.memory=25g,spark:spark.executor.cores=7,spark:spark.executor.instances=8 \
+    --master-machine-type=n2-standard-64 \
     --master-boot-disk-size=2TB \
     --zone=europe-west1-d \
     --initialization-action-timeout=20m \
