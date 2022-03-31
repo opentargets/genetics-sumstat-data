@@ -72,11 +72,11 @@ def main():
         'gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/molecular_trait/eQTLGen.parquet',
         'gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/molecular_trait/iPSCORE.parquet',
         'gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/molecular_trait/van_de_Bunt_2015.parquet',
+        'gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/molecular_trait/FOLKERSEN_2017.parquet',
         'gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/molecular_trait/FOLKERSEN_2020.parquet',
         'gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/molecular_trait/HILLARY_2019.parquet',
         'gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/molecular_trait/OLLI_2016.parquet',
         'gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/molecular_trait/PIETZNER_2020.parquet',
-        'gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/molecular_trait/SCALLOP_2020.parquet',
         'gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/molecular_trait/SUHRE_2017.parquet'
     ]
 

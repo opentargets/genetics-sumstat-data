@@ -53,7 +53,7 @@ def main():
                 .config("parquet.enable.summary-metadata", "true")
                 # .master('local[*]')
                 .getOrCreate()
-        )
+                )
     else:
         spark = (
             pyspark.sql.SparkSession.builder
@@ -90,7 +90,6 @@ def main():
     data = (
         data.withColumn('n_total', F.lit(args.n_total).cast(IntegerType()))
             .withColumn('n_cases', F.lit(args.n_cases).cast(IntegerType()))
-
     )
 
     # Calculate and filter based on MAC or MAC_cases
@@ -185,6 +184,7 @@ def load_sumstats(inf):
     # .withColumn('oddsr_lower', exp(col('beta') - 1.96 * col('sebeta')))
     df = (
         df.withColumnRenamed('#chrom', 'chrom')
+            .withColumn('chrom', F.col('chrom').cast(StringType()))
             .withColumnRenamed('sebeta', 'se')
             .withColumnRenamed('af_alt', 'eaf')
             .withColumn('info', lit(None).cast(DoubleType()))

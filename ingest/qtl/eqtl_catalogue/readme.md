@@ -3,6 +3,9 @@ Ingest eQTL DB sumstats
 
 Spark workflow to read, clean and transfrom summary stats from eQTL DB.
 
+New data go directly into the main folder, gs://genetics-portal-dev-sumstats/unfiltered/molecular_trait/.
+You may want to change this or move the original data if doing a full re-ingestion of eQTL catalogue data.
+
 #### Usage
 
 ```
@@ -12,6 +15,7 @@ VERSION=210824
 1_download_sumstats.sh
 
 # Remove duplicate rows into sumstats_dedup (specify number of cores)
+# (In the previous release of eQTL catalogue, individual SNPs with more than one rsID appear as separate rows, but with identical sumstats. We do not want these duplicated.)
 NCORES=15
 bash 2_remove_duplicate_rows.sh $NCORES
 
