@@ -3,9 +3,8 @@ Ingest GWAS Catalog sumstats
 
 Spark workflow to read, clean and transfrom summary stats from GWAS Catalog.
 
-Latest updates:
-- V7: 
-- V6: 1301 new studies with sumstats and EUR ancestry
+By default, new data are put into a folder with the version date, e.g. gs://genetics-portal-dev-sumstats/unfiltered/gwas_220217/.
+This makes it simpler to find significant windows on just the new data. After other pipelines are run, they will need to be manually moved into the main folder, gs://genetics-portal-dev-sumstats/unfiltered/gwas/.
 
 ### Usage
 ```
@@ -80,6 +79,17 @@ When everything is done, delete the raw sumstat files on GCS.
 ```
 gsutil -m rm -r gs://genetics-portal-dev-raw/gwas_catalog/harmonised_${version_date}
 ```
+
+### Final step to do later
+
+After calling significant windows on the new sumstats, they can be copied into the main folder.
+```
+gsutil -m cp -r gs://genetics-portal-dev-sumstats/unfiltered/gwas_${version_date}/*.parquet gs://genetics-portal-dev-sumstats/unfiltered/gwas/
+
+# Check the data have been copied, and then remove the original
+gsutil -m rm -r gs://genetics-portal-dev-sumstats/unfiltered/gwas_${version_date}
+```
+
 
 ### Starting a Dataproc cluster
 
