@@ -29,16 +29,16 @@ Simple script to check pyspark is able to work properly `test_pyspark.py`
 ### Workflows for processing summary statistics file for Open Targets Genetics.
 
  1. Run ingest pipeline to get unfiltered (full) data:
-  - GWAS: `gs://genetics-portal-sumstats-b38/unfiltered/gwas`
-  - Molecular trait: `gs://genetics-portal-sumstats-b38/unfiltered/molecular_trait`
+  - GWAS: `gs://genetics-portal-dev-sumstats/unfiltered/gwas`
+  - Molecular trait: `gs://genetics-portal-dev-sumstats/unfiltered/molecular_trait`
 
  2. Filter to p < 0.005:
-  - GWAS: `gs://genetics-portal-sumstats-b38/filtered/pvalue_0.005/gwas`
-  - Molecular trait: `gs://genetics-portal-sumstats-b38/filtered/pvalue_0.005/molecular_trait`
+  - GWAS: `gs://genetics-portal-dev-sumstats/filtered/pvalue_0.005/gwas`
+  - Molecular trait: `gs://genetics-portal-dev-sumstats/filtered/pvalue_0.005/molecular_trait`
 
  3. Filter to keep regions within 2Mb of a "significant" association:
-  - GWAS: `gs://genetics-portal-sumstats-b38/filtered/significant_window_2mb/gwas`
-  - Molecular trait: `gs://genetics-portal-sumstats-b38/filtered/significant_window_2mb/molecular_trait`
+  - GWAS: `gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/gwas`
+  - Molecular trait: `gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb/molecular_trait`
 
 All datasets are in Apache Parquet format. These can be read in python using Spark or Pandas via pyarrow or fastparquet.
 
